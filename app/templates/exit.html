@@ -1,0 +1,251 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h4 class="mb-0">
+          <i class="bi bi-box-arrow-left"></i> Salida de Vehículos
+        </h4>
+      </div>
+      <div class="card-body p-4">
+        <form id="exitForm">
+          <div class="mb-3">
+            <label for="searchInput" class="form-label fw-semibold"
+              >Buscar por ID o Patente</label
+            >
+            <input
+              type="text"
+              class="form-control form-control-lg"
+              id="searchInput"
+              placeholder="Ingrese ID o patente del vehículo"
+              required
+              style="text-transform: uppercase"
+            />
+            <small class="text-muted"
+              >Puede escanear el QR o ingresar manualmente</small
+            >
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-success btn-lg">
+              <i class="bi bi-check-circle"></i> Procesar Salida
+            </button>
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+              <i class="bi bi-arrow-left"></i> Volver
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="alert alert-info mt-3">
+      <i class="bi bi-info-circle"></i> <strong>Instrucciones:</strong>
+      <ul class="mb-0 mt-2">
+        <li>Escanee el código QR del ticket de entrada</li>
+        <li>O ingrese manualmente el ID o patente del vehículo</li>
+        <li>El sistema calculará automáticamente el monto a pagar</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Ticket -->
+<div
+  class="modal fade"
+  id="ticketModal"
+  tabindex="-1"
+  aria-labelledby="ticketModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="ticketModalLabel">
+          <i class="bi bi-receipt"></i> Ticket de Salida
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body" id="ticketContent">
+        <!-- El contenido se generará dinámicamente -->
+      </div>
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-primary" onclick="printTicket()">
+          <i class="bi bi-printer"></i> Imprimir Ticket
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Error -->
+<div class="modal fade" id="errorModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle"></i> Error
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p id="errorMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    $("#exitForm").on("submit", function (e) {
+      e.preventDefault();
+
+      const searchValue = $("#searchInput").val().trim();
+      const submitBtn = $(this).find('button[type="submit"]');
+
+      submitBtn
+        .prop("disabled", true)
+        .html('<i class="spinner-border spinner-border-sm"></i> Procesando...');
+
+      // Determinar si es ID o patente
+      const formData = new FormData();
+      if (isNaN(searchValue)) {
+        formData.append("plate", searchValue);
+      } else {
+        formData.append("vehicle_id", searchValue);
+      }
+
+      $.ajax({
+        url: "/vehicle/exit",
+        method: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            generateTicket(response.vehicle);
+            $("#ticketModal").modal("show");
+            $("#exitForm")[0].reset();
+          }
+        },
+        error: function (xhr) {
+          const error = xhr.responseJSON;
+          $("#errorMessage").text(
+            error.message || "Error al procesar la salida"
+          );
+          $("#errorModal").modal("show");
+        },
+        complete: function () {
+          submitBtn
+            .prop("disabled", false)
+            .html('<i class="bi bi-check-circle"></i> Procesar Salida');
+        },
+      });
+    });
+  });
+
+  function generateTicket(vehicle) {
+    const entryDate = new Date(vehicle.entry_time);
+    const exitDate = new Date(vehicle.exit_time);
+
+    const ticketHTML = `
+        <div class="ticket-container p-4">
+            <div class="text-center border-bottom pb-3 mb-3">
+                <h3 class="fw-bold">TICKET DE ESTACIONAMIENTO</h3>
+                <p class="text-muted">Comprobante de Salida</p>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Fecha:</strong></div>
+                <div class="col-6 text-end">${exitDate.toLocaleDateString(
+                  "es-AR"
+                )}</div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Patente:</strong></div>
+                <div class="col-6 text-end"><span class="badge bg-dark">${
+                  vehicle.plate
+                }</span></div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Tipo:</strong></div>
+                <div class="col-6 text-end">${
+                  vehicle.type === "auto" ? "🚗 Auto" : "🏍️ Moto"
+                }</div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Hora Ingreso:</strong></div>
+                <div class="col-6 text-end">${entryDate.toLocaleTimeString(
+                  "es-AR"
+                )}</div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Hora Salida:</strong></div>
+                <div class="col-6 text-end">${exitDate.toLocaleTimeString(
+                  "es-AR"
+                )}</div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Tiempo Total:</strong></div>
+                <div class="col-6 text-end">${vehicle.hours} horas</div>
+            </div>
+            
+            <div class="row mb-2">
+                <div class="col-6"><strong>Operador Ingreso:</strong></div>
+                <div class="col-6 text-end"><small>${
+                  vehicle.operator
+                }</small></div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-6"><strong>Operador Salida:</strong></div>
+                <div class="col-6 text-end"><small>${
+                  vehicle.exit_operator
+                }</small></div>
+            </div>
+            
+            <div class="alert ${
+              vehicle.is_monthly ? "alert-success" : "alert-primary"
+            } text-center">
+                ${
+                  vehicle.is_monthly
+                    ? '<h4 class="mb-0"><i class="bi bi-check-circle"></i> Cliente Mensual</h4><p class="mb-0">Sin cargo</p>'
+                    : `<h3 class="mb-0"><strong>TOTAL A PAGAR:</strong></h3><h1 class="fw-bold mb-0">$${vehicle.cost}</h1>`
+                }
+            </div>
+            
+            <div class="text-center text-muted mt-3">
+                <small>ID: ${vehicle.id}</small><br>
+                <small>Gracias por utilizar nuestro servicio</small>
+            </div>
+        </div>
+    `;
+
+    $("#ticketContent").html(ticketHTML);
+  }
+
+  function printTicket() {
+    window.print();
+  }
+</script>
+{% endblock %}
