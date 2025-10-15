@@ -13,17 +13,53 @@
             <label for="searchInput" class="form-label fw-semibold"
               >Buscar por ID o Patente</label
             >
-            <input
-              type="text"
-              class="form-control form-control-lg"
-              id="searchInput"
-              placeholder="Ingrese ID o patente del vehículo"
-              required
-              style="text-transform: uppercase"
-            />
-            <small class="text-muted"
-              >Puede escanear el QR o ingresar manualmente</small
-            >
+            <div class="input-group input-group-lg">
+              <input
+                type="text"
+                class="form-control"
+                id="searchInput"
+                placeholder="Ingrese ID, escanee QR o use lector físico"
+                required
+                style="text-transform: uppercase"
+                autofocus
+              />
+              <button
+                class="btn btn-outline-primary"
+                type="button"
+                id="scanButton"
+              >
+                <i class="bi bi-camera"></i> Escanear
+              </button>
+            </div>
+            <small class="text-muted">
+              <i class="bi bi-info-circle"></i>
+              Opciones: escribir manualmente, escanear con cámara, o usar lector
+              físico de QR
+            </small>
+          </div>
+
+          <!-- Contenedor para el escáner de cámara -->
+          <div id="qr-reader" style="display: none" class="mb-3">
+            <div class="card border-primary">
+              <div class="card-body">
+                <div
+                  class="d-flex justify-content-between align-items-center mb-2"
+                >
+                  <h6 class="mb-0">
+                    <i class="bi bi-camera-video"></i> Escáner de QR
+                  </h6>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    id="stopScanButton"
+                  >
+                    <i class="bi bi-x-circle"></i> Cerrar Cámara
+                  </button>
+                </div>
+                <div id="qr-reader-container"></div>
+                <div id="qr-reader-results" class="mt-2"></div>
+              </div>
+            </div>
           </div>
 
           <div class="d-grid gap-2">
@@ -39,11 +75,18 @@
     </div>
 
     <div class="alert alert-info mt-3">
-      <i class="bi bi-info-circle"></i> <strong>Instrucciones:</strong>
+      <i class="bi bi-info-circle"></i>
+      <strong>3 Formas de procesar salida:</strong>
       <ul class="mb-0 mt-2">
-        <li>Escanee el código QR del ticket de entrada</li>
-        <li>O ingrese manualmente el ID o patente del vehículo</li>
-        <li>El sistema calculará automáticamente el monto a pagar</li>
+        <li><strong>Método 1:</strong> Escribir manualmente el ID o patente</li>
+        <li>
+          <strong>Método 2:</strong> Hacer clic en "Escanear" para usar la
+          cámara del dispositivo
+        </li>
+        <li>
+          <strong>Método 3:</strong> Usar un lector físico de códigos QR (se
+          captura automáticamente)
+        </li>
       </ul>
     </div>
   </div>
@@ -108,15 +151,139 @@
   </div>
 </div>
 {% endblock %} {% block extra_js %}
+<!-- Librería para escaneo de QR con cámara -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 <script>
+  let html5QrCode = null;
+  let isScanning = false;
+
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("exitForm");
     const submitBtn = document.getElementById("submitBtn");
+    const searchInput = document.getElementById("searchInput");
+    const scanButton = document.getElementById("scanButton");
+    const stopScanButton = document.getElementById("stopScanButton");
+    const qrReaderDiv = document.getElementById("qr-reader");
 
+    // ============================================
+    // OPCIÓN 3: LECTOR FÍSICO DE QR
+    // ============================================
+    // El input captura automáticamente cuando se escanea con lector físico
+    // Los lectores físicos actúan como teclado y envían Enter al final
+    let scanBuffer = "";
+    let scanTimeout = null;
+
+    searchInput.addEventListener("keypress", function (e) {
+      // Si presiona Enter y hay contenido, procesar
+      if (e.key === "Enter" && searchInput.value.trim()) {
+        e.preventDefault();
+        form.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    // Detectar escaneo rápido (lector físico)
+    searchInput.addEventListener("input", function (e) {
+      clearTimeout(scanTimeout);
+
+      // Si el input se llena muy rápido, probablemente es un escáner
+      scanTimeout = setTimeout(() => {
+        if (searchInput.value.length > 3) {
+          console.log("Escaneo detectado por lector físico");
+        }
+      }, 100);
+    });
+
+    // ============================================
+    // OPCIÓN 1: ESCANEO CON CÁMARA
+    // ============================================
+    scanButton.addEventListener("click", function () {
+      if (!isScanning) {
+        startQrScanner();
+      }
+    });
+
+    stopScanButton.addEventListener("click", function () {
+      stopQrScanner();
+    });
+
+    function startQrScanner() {
+      qrReaderDiv.style.display = "block";
+      scanButton.disabled = true;
+      isScanning = true;
+
+      html5QrCode = new Html5Qrcode("qr-reader-container");
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
+
+      html5QrCode
+        .start(
+          { facingMode: "environment" }, // Cámara trasera en móviles
+          config,
+          (decodedText, decodedResult) => {
+            // QR escaneado exitosamente
+            console.log("QR escaneado:", decodedText);
+            searchInput.value = decodedText;
+
+            // Mostrar mensaje de éxito
+            document.getElementById("qr-reader-results").innerHTML =
+              '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> Código escaneado correctamente</div>';
+
+            // Detener escáner después de 1 segundo
+            setTimeout(() => {
+              stopQrScanner();
+            }, 1000);
+          },
+          (errorMessage) => {
+            // Error al escanear (normal mientras busca el QR)
+            // No mostramos estos errores para no saturar
+          }
+        )
+        .catch((err) => {
+          console.error("Error al iniciar cámara:", err);
+          alert("No se pudo acceder a la cámara. Verifique los permisos.");
+          stopQrScanner();
+        });
+    }
+
+    function stopQrScanner() {
+      if (html5QrCode) {
+        html5QrCode
+          .stop()
+          .then(() => {
+            html5QrCode.clear();
+            qrReaderDiv.style.display = "none";
+            scanButton.disabled = false;
+            isScanning = false;
+            document.getElementById("qr-reader-results").innerHTML = "";
+          })
+          .catch((err) => {
+            console.error("Error al detener escáner:", err);
+          });
+      }
+    }
+
+    // ============================================
+    // PROCESAR SALIDA
+    // ============================================
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      const searchValue = document.getElementById("searchInput").value.trim();
+      const searchValue = searchInput.value.trim();
+
+      if (!searchValue) {
+        alert("Por favor ingrese un ID o patente");
+        return;
+      }
+
+      // Detener escáner si está activo
+      if (isScanning) {
+        stopQrScanner();
+      }
 
       // Deshabilitar botón
       submitBtn.disabled = true;
@@ -146,6 +313,7 @@
           );
           ticketModal.show();
           form.reset();
+          searchInput.focus();
         } else {
           document.getElementById("errorMessage").textContent =
             data.message || "Error al procesar la salida";
