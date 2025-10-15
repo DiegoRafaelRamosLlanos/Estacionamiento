@@ -27,7 +27,7 @@
           </div>
 
           <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-success btn-lg">
+            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
               <i class="bi bi-check-circle"></i> Procesar Salida
             </button>
             <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
@@ -69,9 +69,7 @@
           data-bs-dismiss="modal"
         ></button>
       </div>
-      <div class="modal-body" id="ticketContent">
-        <!-- El contenido se generará dinámicamente -->
-      </div>
+      <div class="modal-body" id="ticketContent"></div>
       <div class="modal-footer no-print">
         <button type="button" class="btn btn-primary" onclick="printTicket()">
           <i class="bi bi-printer"></i> Imprimir Ticket
@@ -111,16 +109,19 @@
 </div>
 {% endblock %} {% block extra_js %}
 <script>
-  $(document).ready(function () {
-    $("#exitForm").on("submit", function (e) {
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("exitForm");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      const searchValue = $("#searchInput").val().trim();
-      const submitBtn = $(this).find('button[type="submit"]');
+      const searchValue = document.getElementById("searchInput").value.trim();
 
-      submitBtn
-        .prop("disabled", true)
-        .html('<i class="spinner-border spinner-border-sm"></i> Procesando...');
+      // Deshabilitar botón
+      submitBtn.disabled = true;
+      submitBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm"></span> Procesando...';
 
       // Determinar si es ID o patente
       const formData = new FormData();
@@ -130,32 +131,42 @@
         formData.append("vehicle_id", searchValue);
       }
 
-      $.ajax({
-        url: "/vehicle/exit",
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          if (response.success) {
-            generateTicket(response.vehicle);
-            $("#ticketModal").modal("show");
-            $("#exitForm")[0].reset();
-          }
-        },
-        error: function (xhr) {
-          const error = xhr.responseJSON;
-          $("#errorMessage").text(
-            error.message || "Error al procesar la salida"
+      try {
+        const response = await fetch("/vehicle/exit", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          generateTicket(data.vehicle);
+          const ticketModal = new bootstrap.Modal(
+            document.getElementById("ticketModal")
           );
-          $("#errorModal").modal("show");
-        },
-        complete: function () {
-          submitBtn
-            .prop("disabled", false)
-            .html('<i class="bi bi-check-circle"></i> Procesar Salida');
-        },
-      });
+          ticketModal.show();
+          form.reset();
+        } else {
+          document.getElementById("errorMessage").textContent =
+            data.message || "Error al procesar la salida";
+          const errorModal = new bootstrap.Modal(
+            document.getElementById("errorModal")
+          );
+          errorModal.show();
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("errorMessage").textContent =
+          "Error de conexión: " + error.message;
+        const errorModal = new bootstrap.Modal(
+          document.getElementById("errorModal")
+        );
+        errorModal.show();
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML =
+          '<i class="bi bi-check-circle"></i> Procesar Salida';
+      }
     });
   });
 
@@ -241,7 +252,7 @@
         </div>
     `;
 
-    $("#ticketContent").html(ticketHTML);
+    document.getElementById("ticketContent").innerHTML = ticketHTML;
   }
 
   function printTicket() {
