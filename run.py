@@ -28,13 +28,13 @@ if __name__ == '__main__':
     print("🚀 SERVIDOR DE ESTACIONAMIENTO INICIADO")
     print("="*60)
     print(f"\n📍 Acceso LOCAL (desde esta PC):")
-    print(f"   http://127.0.0.1:5000")
-    print(f"   http://localhost:5000")
+    print(f"   http://127.0.0.1:8080")
+    print(f"   http://localhost:8080")
     print(f"\n📱 Acceso desde CELULAR/TABLET (misma red WiFi):")
-    print(f"   http://{local_ip}:5000")
+    print(f"   http://{local_ip}:8080")
     print(f"\n👤 Usuarios: operador1, operador2, operador3, operador4")
     print(f"🔑 Contraseña: 1234")
     print("\n" + "="*60 + "\n")
     
     # host='0.0.0.0' permite conexiones desde cualquier dispositivo en la red
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080zxzzxxz, debug=True)
