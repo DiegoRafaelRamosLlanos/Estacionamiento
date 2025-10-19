@@ -37,4 +37,4 @@ if __name__ == '__main__':
     print("\n" + "="*60 + "\n")
     
     # host='0.0.0.0' permite conexiones desde cualquier dispositivo en la red
-    app.run(host='0.0.0.0', port=8080zxzzxxz, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True)
