@@ -22,19 +22,26 @@ def get_local_ip():
         return "127.0.0.1"
 
 if __name__ == '__main__':
+    PORT = 8080
     local_ip = get_local_ip()
     
-    print("\n" + "="*60)
+    print("\n" + "="*70)
     print("🚀 SERVIDOR DE ESTACIONAMIENTO INICIADO")
-    print("="*60)
+    print("="*70)
     print(f"\n📍 Acceso LOCAL (desde esta PC):")
-    print(f"   http://127.0.0.1:8080")
-    print(f"   http://localhost:8080")
+    print(f"   http://127.0.0.1:{PORT}")
+    print(f"   http://localhost:{PORT}")
     print(f"\n📱 Acceso desde CELULAR/TABLET (misma red WiFi):")
-    print(f"   http://{local_ip}:8080")
+    print(f"   http://{local_ip}:{PORT}")
+    print(f"\n🔍 IP ACTUAL DETECTADA: {local_ip}")
+    print(f"\n💡 IMPORTANTE:")
+    print(f"   - Si cambias de red, la IP cambiará")
+    print(f"   - WiFi casa: IP será tipo 192.168.0.X o 192.168.1.X")
+    print(f"   - Hotspot celular: IP será tipo 192.168.43.1 o 192.168.18.X")
     print(f"\n👤 Usuarios: operador1, operador2, operador3, operador4")
     print(f"🔑 Contraseña: 1234")
-    print("\n" + "="*60 + "\n")
+    print("\n" + "="*70 + "\n")
     
+    # Iniciar servidor
     # host='0.0.0.0' permite conexiones desde cualquier dispositivo en la red
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=PORT, debug=True)
