@@ -1,0 +1,358 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <h2 class="text-white mb-4">
+      <i class="bi bi-shield-lock"></i> Panel de Auditoría
+    </h2>
+  </div>
+</div>
+
+<!-- Estadísticas Resumidas -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body text-center">
+        <i
+          class="bi bi-calendar-week text-primary"
+          style="font-size: 2.5rem"
+        ></i>
+        <h5 class="mt-3">Última Semana</h5>
+        <h3 id="weekVehicles">-</h3>
+        <p class="text-muted mb-0">Vehículos</p>
+        <h4 class="text-success" id="weekEarnings">$-</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bi bi-calendar-month text-info" style="font-size: 2.5rem"></i>
+        <h5 class="mt-3">Último Mes</h5>
+        <h3 id="monthVehicles">-</h3>
+        <p class="text-muted mb-0">Vehículos</p>
+        <h4 class="text-success" id="monthEarnings">$-</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bi bi-graph-up text-warning" style="font-size: 2.5rem"></i>
+        <h5 class="mt-3">Total Histórico</h5>
+        <h3 id="totalVehicles">-</h3>
+        <p class="text-muted mb-0">Vehículos</p>
+        <p class="mb-0">
+          <small id="monthlyClients">- clientes mensuales</small>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Búsqueda de Transacciones -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-search"></i> Búsqueda de Transacciones
+        </h5>
+      </div>
+      <div class="card-body">
+        <form id="searchForm">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Fecha Inicio</label>
+              <input
+                type="date"
+                class="form-control"
+                name="start_date"
+                id="startDate"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Fecha Fin</label>
+              <input
+                type="date"
+                class="form-control"
+                name="end_date"
+                id="endDate"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Patente</label>
+              <input
+                type="text"
+                class="form-control"
+                name="plate"
+                placeholder="ABC123"
+                style="text-transform: uppercase"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Operador</label>
+              <input
+                type="text"
+                class="form-control"
+                name="operator"
+                placeholder="operador1"
+              />
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Buscar
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="$('#searchForm')[0].reset()"
+              >
+                <i class="bi bi-x-circle"></i> Limpiar
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div id="searchResults" class="mt-4" style="display: none">
+          <h6>Resultados: <span id="resultCount">0</span> transacciones</h6>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patente</th>
+                  <th>Tipo</th>
+                  <th>Ingreso</th>
+                  <th>Salida</th>
+                  <th>Costo</th>
+                  <th>Operador</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reportes Disponibles -->
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-file-earmark-text"></i> Reportes Diarios
+        </h5>
+      </div>
+      <div class="card-body">
+        <div
+          class="table-responsive"
+          style="max-height: 400px; overflow-y: auto"
+        >
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="reportsList">
+              <tr>
+                <td colspan="4" class="text-center">
+                  <div
+                    class="spinner-border spinner-border-sm"
+                    role="status"
+                  ></div>
+                  Cargando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+          <i class="bi bi-database"></i> Backups de Base de Datos
+        </h5>
+      </div>
+      <div class="card-body">
+        <div
+          class="table-responsive"
+          style="max-height: 400px; overflow-y: auto"
+        >
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Tamaño</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody id="backupsList">
+              <tr>
+                <td colspan="3" class="text-center">
+                  <div
+                    class="spinner-border spinner-border-sm"
+                    role="status"
+                  ></div>
+                  Cargando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Botones de Acción -->
+<div class="row">
+  <div class="col-12">
+    <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver al Inicio
+    </a>
+    <button class="btn btn-primary" onclick="loadAllData()">
+      <i class="bi bi-arrow-clockwise"></i> Actualizar Todo
+    </button>
+  </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function() {
+    loadStats();
+    loadReports();
+    loadBackups();
+
+    // Establecer fecha de hoy como valor por defecto
+    const today = new Date().toISOString().split('T')[0];
+    $('#endDate').val(today);
+    $('#startDate').val(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  });
+
+  function loadStats() {
+    $.get('/admin/stats/summary', function(data) {
+      $('#weekVehicles').text(data.ultima_semana.vehiculos);
+      $('#weekEarnings').text('$' + data.ultima_semana.recaudacion.toFixed(2));
+
+      $('#monthVehicles').text(data.ultimo_mes.vehiculos);
+      $('#monthEarnings').text(' + data.ultimo_mes.recaudacion.toFixed(2));
+
+      $('#totalVehicles').text(data.total.vehiculos);
+      $('#monthlyClients').text(data.total.clientes_mensuales + ' clientes mensuales');
+    });
+  }
+
+  function loadReports() {
+    $.get('/admin/reports/list', function(data) {
+      const tbody = $('#reportsList');
+      tbody.empty();
+
+      if (data.reports.length === 0) {
+        tbody.html('<tr><td colspan="4" class="text-center text-muted">No hay reportes disponibles</td></tr>');
+        return;
+      }
+
+      data.reports.forEach(function(report) {
+        const row = `
+          <tr>
+            <td><small>${report.filename}</small></td>
+            <td><span class="badge bg-secondary">${report.type}</span></td>
+            <td><small>${report.created}</small></td>
+            <td>
+              <a href="/admin/reports/download/${report.filename}"
+                 class="btn btn-sm btn-success"
+                 download>
+                <i class="bi bi-download"></i>
+              </a>
+            </td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+    });
+  }
+
+  function loadBackups() {
+    $.get('/admin/backups/list', function(data) {
+      const tbody = $('#backupsList');
+      tbody.empty();
+
+      if (data.backups.length === 0) {
+        tbody.html('<tr><td colspan="3" class="text-center text-muted">No hay backups disponibles</td></tr>');
+        return;
+      }
+
+      data.backups.forEach(function(backup) {
+        const row = `
+          <tr>
+            <td><small>${backup.filename}</small></td>
+            <td><small>${backup.size} MB</small></td>
+            <td><small>${backup.created}</small></td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+    });
+  }
+
+  $('#searchForm').on('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    $.ajax({
+      url: '/admin/audit/search',
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function(data) {
+        const tbody = $('#resultsBody');
+        tbody.empty();
+
+        $('#resultCount').text(data.count);
+        $('#searchResults').show();
+
+        if (data.count === 0) {
+          tbody.html('<tr><td colspan="7" class="text-center text-muted">No se encontraron resultados</td></tr>');
+          return;
+        }
+
+        data.results.forEach(function(vehicle) {
+          const row = `
+            <tr>
+              <td>${vehicle.id}</td>
+              <td><strong>${vehicle.plate}</strong></td>
+              <td>${vehicle.type === 'auto' ? '🚗' : '🏍️'} ${vehicle.type}</td>
+              <td><small>${vehicle.entry_time}</small></td>
+              <td><small>${vehicle.exit_time || '<span class="text-warning">En curso</span>'}</small></td>
+              <td>${vehicle.is_monthly ? '<span class="badge bg-success">Mensual</span>' : ' + vehicle.cost}</td>
+              <td><small>${vehicle.operator}${vehicle.exit_operator ? ' / ' + vehicle.exit_operator : ''}</small></td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+      }
+    });
+  });
+
+  function loadAllData() {
+    loadStats();
+    loadReports();
+    loadBackups();
+  }
+</script>
+{% endblock %}
