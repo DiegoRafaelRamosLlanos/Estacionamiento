@@ -1,0 +1,11 @@
+{
+  "fecha": "2025-10-27",
+  "timestamp": "20251027_182047",
+  "resumen": {
+    "total_vehiculos": 0,
+    "recaudacion_total": 0,
+    "vehiculos_activos": 0,
+    "clientes_mensuales": 0
+  },
+  "movimientos": []
+}

@@ -231,41 +231,49 @@
 
 {% endblock %} {% block extra_js %}
 <script>
-  $(document).ready(function() {
+  $(document).ready(function () {
     loadStats();
     loadReports();
     loadBackups();
 
     // Establecer fecha de hoy como valor por defecto
-    const today = new Date().toISOString().split('T')[0];
-    $('#endDate').val(today);
-    $('#startDate').val(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const today = new Date().toISOString().split("T")[0];
+    $("#endDate").val(today);
+    $("#startDate").val(
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+    );
   });
 
   function loadStats() {
-    $.get('/admin/stats/summary', function(data) {
-      $('#weekVehicles').text(data.ultima_semana.vehiculos);
-      $('#weekEarnings').text('$' + data.ultima_semana.recaudacion.toFixed(2));
+    $.get("/admin/stats/summary", function (data) {
+      $("#weekVehicles").text(data.ultima_semana.vehiculos);
+      $("#weekEarnings").text("$" + data.ultima_semana.recaudacion.toFixed(2));
 
-      $('#monthVehicles').text(data.ultimo_mes.vehiculos);
-      $('#monthEarnings').text(' + data.ultimo_mes.recaudacion.toFixed(2));
+      $("#monthVehicles").text(data.ultimo_mes.vehiculos);
+      $("#monthEarnings").text("$" + data.ultimo_mes.recaudacion.toFixed(2));
 
-      $('#totalVehicles').text(data.total.vehiculos);
-      $('#monthlyClients').text(data.total.clientes_mensuales + ' clientes mensuales');
+      $("#totalVehicles").text(data.total.vehiculos);
+      $("#monthlyClients").text(
+        data.total.clientes_mensuales + " clientes mensuales"
+      );
+    }).fail(function (xhr, status, error) {
+      console.error("Error cargando estadísticas:", error);
     });
   }
 
   function loadReports() {
-    $.get('/admin/reports/list', function(data) {
-      const tbody = $('#reportsList');
+    $.get("/admin/reports/list", function (data) {
+      const tbody = $("#reportsList");
       tbody.empty();
 
       if (data.reports.length === 0) {
-        tbody.html('<tr><td colspan="4" class="text-center text-muted">No hay reportes disponibles</td></tr>');
+        tbody.html(
+          '<tr><td colspan="4" class="text-center text-muted">No hay reportes disponibles</td></tr>'
+        );
         return;
       }
 
-      data.reports.forEach(function(report) {
+      data.reports.forEach(function (report) {
         const row = `
           <tr>
             <td><small>${report.filename}</small></td>
@@ -282,20 +290,27 @@
         `;
         tbody.append(row);
       });
+    }).fail(function (xhr, status, error) {
+      console.error("Error cargando reportes:", error);
+      $("#reportsList").html(
+        '<tr><td colspan="4" class="text-center text-danger">Error al cargar reportes</td></tr>'
+      );
     });
   }
 
   function loadBackups() {
-    $.get('/admin/backups/list', function(data) {
-      const tbody = $('#backupsList');
+    $.get("/admin/backups/list", function (data) {
+      const tbody = $("#backupsList");
       tbody.empty();
 
       if (data.backups.length === 0) {
-        tbody.html('<tr><td colspan="3" class="text-center text-muted">No hay backups disponibles</td></tr>');
+        tbody.html(
+          '<tr><td colspan="3" class="text-center text-muted">No hay backups disponibles</td></tr>'
+        );
         return;
       }
 
-      data.backups.forEach(function(backup) {
+      data.backups.forEach(function (backup) {
         const row = `
           <tr>
             <td><small>${backup.filename}</small></td>
@@ -305,47 +320,67 @@
         `;
         tbody.append(row);
       });
+    }).fail(function (xhr, status, error) {
+      console.error("Error cargando backups:", error);
+      $("#backupsList").html(
+        '<tr><td colspan="3" class="text-center text-danger">Error al cargar backups</td></tr>'
+      );
     });
   }
 
-  $('#searchForm').on('submit', function(e) {
+  $("#searchForm").on("submit", function (e) {
     e.preventDefault();
 
     const formData = new FormData(this);
 
     $.ajax({
-      url: '/admin/audit/search',
-      method: 'POST',
+      url: "/admin/audit/search",
+      method: "POST",
       data: formData,
       processData: false,
       contentType: false,
-      success: function(data) {
-        const tbody = $('#resultsBody');
+      success: function (data) {
+        const tbody = $("#resultsBody");
         tbody.empty();
 
-        $('#resultCount').text(data.count);
-        $('#searchResults').show();
+        $("#resultCount").text(data.count);
+        $("#searchResults").show();
 
         if (data.count === 0) {
-          tbody.html('<tr><td colspan="7" class="text-center text-muted">No se encontraron resultados</td></tr>');
+          tbody.html(
+            '<tr><td colspan="7" class="text-center text-muted">No se encontraron resultados</td></tr>'
+          );
           return;
         }
 
-        data.results.forEach(function(vehicle) {
+        data.results.forEach(function (vehicle) {
           const row = `
             <tr>
               <td>${vehicle.id}</td>
               <td><strong>${vehicle.plate}</strong></td>
-              <td>${vehicle.type === 'auto' ? '🚗' : '🏍️'} ${vehicle.type}</td>
+              <td>${vehicle.type === "auto" ? "🚗" : "🏍️"} ${vehicle.type}</td>
               <td><small>${vehicle.entry_time}</small></td>
-              <td><small>${vehicle.exit_time || '<span class="text-warning">En curso</span>'}</small></td>
-              <td>${vehicle.is_monthly ? '<span class="badge bg-success">Mensual</span>' : ' + vehicle.cost}</td>
-              <td><small>${vehicle.operator}${vehicle.exit_operator ? ' / ' + vehicle.exit_operator : ''}</small></td>
+              <td><small>${
+                vehicle.exit_time ||
+                '<span class="text-warning">En curso</span>'
+              }</small></td>
+              <td>${
+                vehicle.is_monthly
+                  ? '<span class="badge bg-success">Mensual</span>'
+                  : "$" + vehicle.cost
+              }</td>
+              <td><small>${vehicle.operator}${
+            vehicle.exit_operator ? " / " + vehicle.exit_operator : ""
+          }</small></td>
             </tr>
           `;
           tbody.append(row);
         });
-      }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error en búsqueda:", error);
+        alert("Error al realizar la búsqueda");
+      },
     });
   });
 
