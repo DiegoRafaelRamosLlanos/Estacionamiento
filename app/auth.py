@@ -10,12 +10,27 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
+        # Debug: Buscar usuario
         user = User.query.filter_by(username=username).first()
         
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('main.index'))
-        flash('Invalid username or password')
+        if not user:
+            flash(f'Usuario "{username}" no encontrado en el sistema', 'danger')
+            return render_template('auth/login.html')
+        
+        # Debug: Verificar contraseña
+        if not user.check_password(password):
+            flash(f'Contraseña incorrecta para el usuario "{username}"', 'danger')
+            return render_template('auth/login.html')
+        
+        # Login exitoso
+        login_user(user)
+        
+        # Mostrar mensaje de bienvenida con rol
+        role_text = "Administrador" if user.role == 'admin' else "Operador"
+        flash(f'Bienvenido {user.name} ({role_text})', 'success')
+        
+        return redirect(url_for('main.index'))
     
     return render_template('auth/login.html')
 
@@ -23,4 +38,5 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('Sesión cerrada correctamente', 'info')
     return redirect(url_for('auth.login'))

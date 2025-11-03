@@ -9,12 +9,21 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     name = db.Column(db.String(100))
+    role = db.Column(db.String(20), default='operador')  # 'operador' o 'admin'
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def is_admin(self):
+        """Verifica si el usuario tiene rol de administrador"""
+        return self.role == 'admin'
+    
+    def is_operator(self):
+        """Verifica si el usuario tiene rol de operador"""
+        return self.role == 'operador'
 
 class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)

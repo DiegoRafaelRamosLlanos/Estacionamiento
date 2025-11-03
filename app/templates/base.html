@@ -16,6 +16,7 @@
       :root {
         --primary-color: #2563eb;
         --secondary-color: #1e40af;
+        --admin-color: #dc2626;
       }
 
       body {
@@ -61,6 +62,25 @@
 
       .nav-link:hover {
         color: var(--primary-color) !important;
+      }
+
+      /* Estilos especiales para links de admin */
+      .nav-link.admin-link {
+        color: var(--admin-color) !important;
+        font-weight: 600;
+      }
+
+      .nav-link.admin-link:hover {
+        background: rgba(220, 38, 38, 0.1);
+        border-radius: 5px;
+      }
+
+      .badge-admin {
+        background: var(--admin-color);
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 0.7rem;
+        margin-left: 5px;
       }
 
       .form-control {
@@ -116,6 +136,7 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
+            <!-- Opciones disponibles para TODOS -->
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('main.entry_page') }}">
                 <i class="bi bi-box-arrow-in-right"></i> Ingreso
@@ -136,20 +157,38 @@
                 <i class="bi bi-clock-history"></i> Estado
               </a>
             </li>
+
+            <!-- Opciones SOLO para ADMINISTRADORES -->
+            {% if current_user.role == 'admin' %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.reports_page') }}">
+              <a
+                class="nav-link admin-link"
+                href="{{ url_for('main.reports_page') }}"
+              >
                 <i class="bi bi-graph-up"></i> Reportes
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.audit_panel') }}">
+              <a
+                class="nav-link admin-link"
+                href="{{ url_for('main.audit_panel') }}"
+              >
                 <i class="bi bi-shield-lock"></i> Auditoría
               </a>
             </li>
+            {% endif %}
           </ul>
+
+          <!-- Información del usuario actual -->
           <span class="navbar-text me-3">
-            <i class="bi bi-person-circle"></i> {{ current_user.username }}
+            <i class="bi bi-person-circle"></i> {{ current_user.username }} {%
+            if current_user.role == 'admin' %}
+            <span class="badge bg-danger ms-2">ADMIN</span>
+            {% else %}
+            <span class="badge bg-primary ms-2">OPERADOR</span>
+            {% endif %}
           </span>
+
           <a
             href="{{ url_for('auth.logout') }}"
             class="btn btn-outline-danger btn-sm"
