@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -45,12 +45,38 @@ class MonthlyClient(db.Model):
     plate = db.Column(db.String(10), nullable=False, unique=True)
     model = db.Column(db.String(50))
     phone = db.Column(db.String(20))
-    expiration_date = db.Column(db.DateTime, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    duration_months = db.Column(db.Integer, default=1)  # NUEVO: duración en meses
     vehicle_type = db.Column(db.String(10), nullable=False)  # 'auto' or 'moto'
     created_at = db.Column(db.DateTime, default=datetime.now)
     
+    def get_expiration_date(self):
+        """Calcula la fecha de vencimiento según la duración contratada"""
+        days = 30 * self.duration_months
+        return self.start_date + timedelta(days=days)
+    
     def is_expired(self):
-        return self.expiration_date < datetime.now()
+        """Verifica si el abono mensual ha vencido"""
+        return self.get_expiration_date() < datetime.now()
+    
+    def days_remaining(self):
+        """Calcula los días restantes hasta el vencimiento"""
+        expiration = self.get_expiration_date()
+        remaining = (expiration - datetime.now()).days
+        return max(0, remaining)
+    
+    def get_duration_text(self):
+        """Retorna texto descriptivo de la duración"""
+        if self.duration_months == 1:
+            return "1 mes"
+        elif self.duration_months == 3:
+            return "3 meses"
+        elif self.duration_months == 6:
+            return "6 meses"
+        elif self.duration_months == 12:
+            return "1 año"
+        else:
+            return f"{self.duration_months} meses"
     
     def __repr__(self):
         return f'<MonthlyClient {self.plate}>'

@@ -58,16 +58,19 @@
             </div>
 
             <div class="col-md-6">
-              <label for="expiration_date" class="form-label fw-semibold"
-                >Fecha de Vencimiento</label
+              <label for="start_date" class="form-label fw-semibold"
+                >Fecha de Inicio del Abono</label
               >
               <input
                 type="date"
                 class="form-control"
-                id="expiration_date"
-                name="expiration_date"
+                id="start_date"
+                name="start_date"
                 required
               />
+              <small class="text-muted"
+                >El abono dura 30 días desde esta fecha</small
+              >
             </div>
 
             <div class="col-12">
@@ -99,14 +102,18 @@
                 <th>Modelo</th>
                 <th>Tipo</th>
                 <th>Teléfono</th>
+                <th>Fecha de Inicio</th>
                 <th>Vencimiento</th>
+                <th>Días Restantes</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {% for client in clients %}
-              <tr class="{% if client.is_expired() %}table-danger{% endif %}">
+              <tr
+                class="{% if client.is_expired() %}table-danger{% elif client.days_remaining() <= 7 %}table-warning{% endif %}"
+              >
                 <td><strong>{{ client.plate }}</strong></td>
                 <td>{{ client.model }}</td>
                 <td>
@@ -114,12 +121,34 @@
                   Moto {% endif %}
                 </td>
                 <td>{{ client.phone }}</td>
-                <td>{{ client.expiration_date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ client.start_date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ client.get_expiration_date().strftime('%d/%m/%Y') }}</td>
                 <td>
                   {% if client.is_expired() %}
-                  <span class="badge bg-danger">VENCIDO</span>
+                  <span class="badge bg-danger">0 días</span>
+                  {% elif client.days_remaining() <= 7 %}
+                  <span class="badge bg-warning text-dark"
+                    >{{ client.days_remaining() }} días</span
+                  >
                   {% else %}
-                  <span class="badge bg-success">ACTIVO</span>
+                  <span class="badge bg-success"
+                    >{{ client.days_remaining() }} días</span
+                  >
+                  {% endif %}
+                </td>
+                <td>
+                  {% if client.is_expired() %}
+                  <span class="badge bg-danger">
+                    <i class="bi bi-x-circle"></i> VENCIDO
+                  </span>
+                  {% elif client.days_remaining() <= 7 %}
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-exclamation-triangle"></i> POR VENCER
+                  </span>
+                  {% else %}
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle"></i> ACTIVO
+                  </span>
                   {% endif %}
                 </td>
                 <td>
@@ -138,6 +167,25 @@
               {% endfor %}
             </tbody>
           </table>
+        </div>
+
+        <div class="alert alert-info mt-3">
+          <i class="bi bi-info-circle"></i>
+          <strong>Información:</strong>
+          <ul class="mb-0 mt-2">
+            <li>
+              Los abonos mensuales tienen una duración de 30 días desde la fecha
+              de inicio
+            </li>
+            <li>
+              Los clientes con 7 días o menos aparecen en
+              <span class="badge bg-warning text-dark">AMARILLO</span>
+            </li>
+            <li>
+              Los clientes vencidos aparecen en
+              <span class="badge bg-danger">ROJO</span>
+            </li>
+          </ul>
         </div>
         {% else %}
         <div class="text-center py-5 text-muted">
@@ -207,9 +255,9 @@
 {% endblock %} {% block extra_js %}
 <script>
   $(document).ready(function () {
-    // Establecer fecha mínima como hoy
+    // Establecer fecha de hoy como valor por defecto
     const today = new Date().toISOString().split("T")[0];
-    $("#expiration_date").attr("min", today);
+    $("#start_date").val(today);
 
     $("#monthlyForm").on("submit", function (e) {
       e.preventDefault();

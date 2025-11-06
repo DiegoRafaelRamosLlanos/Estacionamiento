@@ -51,7 +51,7 @@ def vehicle_entry():
         
         if monthly_client:
             # Verificar si está vencido
-            if monthly_client.expiration_date < datetime.now():
+            if monthly_client.is_expired():
                 return jsonify({
                     'success': False,
                     'message': 'El abono mensual ha vencido. Por favor, renovar.'
@@ -204,7 +204,8 @@ def add_monthly_client():
         model = request.form.get('model')
         phone = request.form.get('phone')
         vehicle_type = request.form.get('type')
-        expiration_date = datetime.strptime(request.form.get('expiration_date'), '%Y-%m-%d')
+        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+        duration_months = int(request.form.get('duration_months', 1))
         
         # Verificar si ya existe
         existing = MonthlyClient.query.filter_by(plate=plate).first()
@@ -219,15 +220,47 @@ def add_monthly_client():
             model=model,
             phone=phone,
             vehicle_type=vehicle_type,
-            expiration_date=expiration_date
+            start_date=start_date,
+            duration_months=duration_months
         )
         
         db.session.add(client)
         db.session.commit()
         
+        duration_text = client.get_duration_text()
+        expiration = client.get_expiration_date()
+        
         return jsonify({
             'success': True,
-            'message': 'Cliente mensual registrado correctamente'
+            'message': f'Cliente mensual registrado correctamente. Abono de {duration_text} válido hasta {expiration.strftime("%d/%m/%Y")}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@main.route('/monthly/renew/<int:id>', methods=['POST'])
+@login_required
+def renew_monthly_client(id):
+    try:
+        client = MonthlyClient.query.get_or_404(id)
+        duration_months = int(request.form.get('duration_months', 1))
+        
+        # Calcular nueva fecha de inicio desde hoy
+        client.start_date = datetime.now()
+        client.duration_months = duration_months
+        
+        db.session.commit()
+        
+        duration_text = client.get_duration_text()
+        expiration = client.get_expiration_date()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Abono renovado exitosamente. Válido por {duration_text} hasta {expiration.strftime("%d/%m/%Y")}'
         })
         
     except Exception as e:
