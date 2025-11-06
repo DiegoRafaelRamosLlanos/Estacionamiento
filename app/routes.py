@@ -245,29 +245,73 @@ def add_monthly_client():
 @main.route('/monthly/renew/<int:id>', methods=['POST'])
 @login_required
 def renew_monthly_client(id):
+    """
+    Ruta para renovar (vencidos) o extender (activos) abonos mensuales
+    """
     try:
         client = MonthlyClient.query.get_or_404(id)
-        duration_months = int(request.form.get('duration_months', 1))
+        duration_months_to_add = int(request.form.get('duration_months', 1))
         
-        # Calcular nueva fecha de inicio desde hoy
-        client.start_date = datetime.now()
-        client.duration_months = duration_months
-        
-        db.session.commit()
-        
-        duration_text = client.get_duration_text()
-        expiration = client.get_expiration_date()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Abono renovado exitosamente. Válido por {duration_text} hasta {expiration.strftime("%d/%m/%Y")}'
-        })
+        if client.is_expired():
+            # ============================================
+            # CASO 1: RENOVAR (Cliente VENCIDO)
+            # ============================================
+            # Reiniciar completamente desde hoy
+            client.start_date = datetime.now()
+            client.duration_months = duration_months_to_add
+            
+            expiration = client.get_expiration_date()
+            duration_text = client.get_duration_text()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'✅ Abono RENOVADO exitosamente.\n' + 
+                          f'Duración: {duration_text}\n' +
+                          f'Válido hasta: {expiration.strftime("%d/%m/%Y")}'
+            })
+        else:
+            # ============================================
+            # CASO 2: EXTENDER (Cliente ACTIVO)
+            # ============================================
+            # Sumar la duración manteniendo la fecha de inicio original
+            
+            # Duración actual en meses
+            current_duration = client.duration_months
+            
+            # Nueva duración total = actual + lo que se agrega
+            new_total_duration = current_duration + duration_months_to_add
+            
+            # Actualizar
+            client.duration_months = new_total_duration
+            
+            # Obtener nueva fecha de vencimiento
+            expiration = client.get_expiration_date()
+            
+            # Textos para el mensaje
+            added_text = f"{duration_months_to_add} {'mes' if duration_months_to_add == 1 else 'meses'}"
+            total_text = client.get_duration_text()
+            
+            # Calcular días para mostrar
+            total_days = new_total_duration * 30
+            added_days = duration_months_to_add * 30
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'✅ Abono EXTENDIDO exitosamente.\n' +
+                          f'Se agregaron: {added_text} ({added_days} días)\n' +
+                          f'Duración total: {total_text} ({total_days} días)\n' +
+                          f'Nuevo vencimiento: {expiration.strftime("%d/%m/%Y")}'
+            })
         
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'success': False,
-            'message': str(e)
+            'message': f'Error: {str(e)}'
         }), 500
 
 @main.route('/monthly/delete/<int:id>', methods=['POST'])

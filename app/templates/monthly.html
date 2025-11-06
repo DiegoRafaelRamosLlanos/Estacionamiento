@@ -68,9 +68,49 @@
                 name="start_date"
                 required
               />
-              <small class="text-muted"
-                >El abono dura 30 días desde esta fecha</small
+            </div>
+
+            <div class="col-md-6">
+              <label for="duration_months" class="form-label fw-semibold"
+                >Duración del Abono</label
               >
+              <select
+                class="form-select"
+                id="duration_months"
+                name="duration_months"
+                required
+              >
+                <option value="1" selected>1 mes (30 días)</option>
+                <option value="3">3 meses (90 días)</option>
+                <option value="6">6 meses (180 días)</option>
+                <option value="12">1 año (365 días)</option>
+              </select>
+            </div>
+
+            <!-- Vista previa de vencimiento -->
+            <div class="col-12">
+              <div
+                class="alert alert-info"
+                id="expirationPreview"
+                style="display: none"
+              >
+                <div class="row">
+                  <div class="col-md-6">
+                    <strong
+                      ><i class="bi bi-calendar-check"></i> Fecha de
+                      Vencimiento:</strong
+                    ><br />
+                    <span id="expirationDate" class="fs-5"></span>
+                  </div>
+                  <div class="col-md-6">
+                    <strong
+                      ><i class="bi bi-clock-history"></i> Duración
+                      Total:</strong
+                    ><br />
+                    <span id="totalDays" class="fs-5"></span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="col-12">
@@ -103,6 +143,7 @@
                 <th>Tipo</th>
                 <th>Teléfono</th>
                 <th>Fecha de Inicio</th>
+                <th>Duración</th>
                 <th>Vencimiento</th>
                 <th>Días Restantes</th>
                 <th>Estado</th>
@@ -122,6 +163,11 @@
                 </td>
                 <td>{{ client.phone }}</td>
                 <td>{{ client.start_date.strftime('%d/%m/%Y') }}</td>
+                <td>
+                  <span class="badge bg-primary">
+                    {{ client.get_duration_text() }}
+                  </span>
+                </td>
                 <td>{{ client.get_expiration_date().strftime('%d/%m/%Y') }}</td>
                 <td>
                   {% if client.is_expired() %}
@@ -152,13 +198,37 @@
                   {% endif %}
                 </td>
                 <td>
+                  {% if client.is_expired() %}
+                  <!-- Renovar (solo para vencidos) -->
+                  <button
+                    class="btn btn-sm btn-danger"
+                    onclick="showRenewModal({{ client.id }}, '{{ client.plate }}')"
+                    title="Renovar abono vencido"
+                  >
+                    <i class="bi bi-arrow-repeat"></i> Renovar
+                  </button>
+                  {% else %}
+                  <!-- Extender (solo para activos) -->
+                  <button
+                    class="btn btn-sm btn-info"
+                    onclick="showExtendModal({{ client.id }}, '{{ client.plate }}', '{{ client.get_expiration_date().strftime('%Y-%m-%d') }}', {{ client.days_remaining() }})"
+                    title="Extender tiempo del abono"
+                  >
+                    <i class="bi bi-plus-circle"></i> Extender
+                  </button>
+                  {% endif %}
+
                   <form
                     method="POST"
                     action="{{ url_for('main.delete_monthly_client', id=client.id) }}"
                     onsubmit="return confirm('¿Está seguro de eliminar este cliente?');"
                     class="d-inline"
                   >
-                    <button type="submit" class="btn btn-sm btn-danger">
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-outline-danger"
+                      title="Eliminar"
+                    >
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
@@ -173,9 +243,15 @@
           <i class="bi bi-info-circle"></i>
           <strong>Información:</strong>
           <ul class="mb-0 mt-2">
+            <li>Puede elegir la duración del abono: 1, 3, 6 o 12 meses</li>
+            <li>Los días se calculan automáticamente (1 mes = 30 días)</li>
             <li>
-              Los abonos mensuales tienen una duración de 30 días desde la fecha
-              de inicio
+              <strong>Renovar:</strong> Para clientes vencidos (reinicia desde
+              hoy)
+            </li>
+            <li>
+              <strong>Extender:</strong> Para clientes activos (agrega tiempo
+              desde su vencimiento)
             </li>
             <li>
               Los clientes con 7 días o menos aparecen en
@@ -252,6 +328,160 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de Renovación (Solo para VENCIDOS) -->
+<div class="modal fade" id="renewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-arrow-repeat"></i> Renovar Abono Vencido
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form id="renewForm">
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Abono vencido</strong> - Se renovará desde hoy
+          </div>
+
+          <p>Renovar abono para: <strong id="renewPlate"></strong></p>
+          <input type="hidden" id="renewClientId" name="client_id" />
+
+          <div class="mb-3">
+            <label for="renew_duration_months" class="form-label fw-semibold">
+              Nueva Duración
+            </label>
+            <select
+              class="form-select"
+              id="renew_duration_months"
+              name="duration_months"
+              required
+            >
+              <option value="1">1 mes (30 días)</option>
+              <option value="3">3 meses (90 días)</option>
+              <option value="6">6 meses (180 días)</option>
+              <option value="12">1 año (365 días)</option>
+            </select>
+          </div>
+
+          <div class="alert alert-info" id="renewPreview">
+            <strong>Fecha de inicio:</strong> Hoy<br />
+            <strong>Nueva fecha de vencimiento:</strong><br />
+            <span id="renewExpiration" class="fs-5"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-check-circle"></i> Renovar Abono
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Extensión (Solo para ACTIVOS) -->
+<div class="modal fade" id="extendModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle"></i> Extender Tiempo de Abono
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form id="extendForm">
+        <div class="modal-body">
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i>
+            <strong>Abono activo</strong> - Se extenderá desde su vencimiento
+            actual
+          </div>
+
+          <p>Extender abono para: <strong id="extendPlate"></strong></p>
+          <input type="hidden" id="extendClientId" name="client_id" />
+          <input
+            type="hidden"
+            id="currentExpiration"
+            name="current_expiration"
+          />
+
+          <div class="mb-3">
+            <div class="card bg-light">
+              <div class="card-body">
+                <strong>Vencimiento actual:</strong><br />
+                <span
+                  id="currentExpirationDisplay"
+                  class="fs-5 text-primary"
+                ></span
+                ><br />
+                <small class="text-muted">
+                  <i class="bi bi-clock"></i>
+                  <span id="daysRemainingDisplay"></span> días restantes
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="extend_duration_months" class="form-label fw-semibold">
+              Tiempo a Agregar
+            </label>
+            <select
+              class="form-select"
+              id="extend_duration_months"
+              name="duration_months"
+              required
+            >
+              <option value="1">+ 1 mes (30 días)</option>
+              <option value="3">+ 3 meses (90 días)</option>
+              <option value="6">+ 6 meses (180 días)</option>
+              <option value="12">+ 1 año (365 días)</option>
+            </select>
+          </div>
+
+          <div class="alert alert-info" id="extendPreview">
+            <strong>Nuevo vencimiento:</strong><br />
+            <span id="extendExpiration" class="fs-5"></span><br />
+            <small class="text-muted">
+              Total: <span id="extendTotalDays"></span> días desde hoy
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-info">
+            <i class="bi bi-check-circle"></i> Extender Abono
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %} {% block extra_js %}
 <script>
   $(document).ready(function () {
@@ -259,6 +489,87 @@
     const today = new Date().toISOString().split("T")[0];
     $("#start_date").val(today);
 
+    // Calcular y mostrar fecha de vencimiento
+    function calculateExpiration() {
+      const startDateInput = $("#start_date").val();
+      const durationMonths = parseInt($("#duration_months").val());
+
+      if (!startDateInput) {
+        $("#expirationPreview").hide();
+        return;
+      }
+
+      const totalDays = durationMonths * 30;
+      const startDate = new Date(startDateInput + "T00:00:00");
+      const expirationDate = new Date(startDate);
+      expirationDate.setDate(expirationDate.getDate() + totalDays);
+
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+      const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
+
+      $("#expirationDate").text(expirationStr);
+      $("#totalDays").text(totalDays + " días");
+      $("#expirationPreview").fadeIn();
+    }
+
+    $("#start_date, #duration_months").on("change", calculateExpiration);
+    calculateExpiration();
+
+    // Calcular renovación (desde hoy)
+    $("#renew_duration_months").on("change", function () {
+      const durationMonths = parseInt($(this).val());
+      const totalDays = durationMonths * 30;
+
+      const today = new Date();
+      const expirationDate = new Date(today);
+      expirationDate.setDate(expirationDate.getDate() + totalDays);
+
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+      const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
+
+      $("#renewExpiration").text(expirationStr);
+    });
+
+    // Calcular extensión (desde vencimiento actual)
+    $("#extend_duration_months").on("change", function () {
+      const durationMonths = parseInt($(this).val());
+      const totalDays = durationMonths * 30;
+      const currentExp = new Date($("#currentExpiration").val() + "T00:00:00");
+
+      const newExpirationDate = new Date(currentExp);
+      newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
+
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+      const expirationStr = newExpirationDate.toLocaleDateString(
+        "es-AR",
+        options
+      );
+
+      // Calcular días totales desde hoy
+      const today = new Date();
+      const diffTime = newExpirationDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      $("#extendExpiration").text(expirationStr);
+      $("#extendTotalDays").text(diffDays);
+    });
+
+    // Formulario de registro
     $("#monthlyForm").on("submit", function (e) {
       e.preventDefault();
 
@@ -295,6 +606,133 @@
         },
       });
     });
+
+    // Formulario de renovación
+    $("#renewForm").on("submit", function (e) {
+      e.preventDefault();
+
+      const clientId = $("#renewClientId").val();
+      const duration = $("#renew_duration_months").val();
+
+      const formData = new FormData();
+      formData.append("duration_months", duration);
+
+      $.ajax({
+        url: `/monthly/renew/${clientId}`,
+        method: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            $("#renewModal").modal("hide");
+            $("#successMessage").text(response.message);
+            $("#successModal").modal("show");
+          }
+        },
+        error: function (xhr) {
+          const error = xhr.responseJSON;
+          $("#errorMessage").text(error.message || "Error al renovar el abono");
+          $("#errorModal").modal("show");
+        },
+      });
+    });
+
+    // Formulario de extensión
+    $("#extendForm").on("submit", function (e) {
+      e.preventDefault();
+
+      const clientId = $("#extendClientId").val();
+      const duration = $("#extend_duration_months").val();
+
+      const formData = new FormData();
+      formData.append("duration_months", duration);
+
+      $.ajax({
+        url: `/monthly/renew/${clientId}`,
+        method: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            $("#extendModal").modal("hide");
+            $("#successMessage").text(response.message);
+            $("#successModal").modal("show");
+          }
+        },
+        error: function (xhr) {
+          const error = xhr.responseJSON;
+          $("#errorMessage").text(
+            error.message || "Error al extender el abono"
+          );
+          $("#errorModal").modal("show");
+        },
+      });
+    });
   });
+
+  // Función para mostrar modal de renovación (VENCIDOS)
+  function showRenewModal(clientId, plate) {
+    $("#renewClientId").val(clientId);
+    $("#renewPlate").text(plate);
+
+    // Calcular fecha inicial
+    const durationMonths = parseInt($("#renew_duration_months").val());
+    const totalDays = durationMonths * 30;
+
+    const today = new Date();
+    const expirationDate = new Date(today);
+    expirationDate.setDate(expirationDate.getDate() + totalDays);
+
+    const options = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
+
+    $("#renewExpiration").text(expirationStr);
+    $("#renewModal").modal("show");
+  }
+
+  // Función para mostrar modal de extensión (ACTIVOS)
+  function showExtendModal(clientId, plate, currentExpiration, daysRemaining) {
+    $("#extendClientId").val(clientId);
+    $("#extendPlate").text(plate);
+    $("#currentExpiration").val(currentExpiration);
+
+    // Mostrar vencimiento actual
+    const expDate = new Date(currentExpiration + "T00:00:00");
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    const expStr = expDate.toLocaleDateString("es-AR", options);
+
+    $("#currentExpirationDisplay").text(expStr);
+    $("#daysRemainingDisplay").text(daysRemaining);
+
+    // Calcular nueva fecha
+    const durationMonths = parseInt($("#extend_duration_months").val());
+    const totalDays = durationMonths * 30;
+
+    const newExpirationDate = new Date(expDate);
+    newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
+
+    const newExpStr = newExpirationDate.toLocaleDateString("es-AR", options);
+
+    // Calcular días totales desde hoy
+    const today = new Date();
+    const diffTime = newExpirationDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    $("#extendExpiration").text(newExpStr);
+    $("#extendTotalDays").text(diffDays);
+
+    $("#extendModal").modal("show");
+  }
 </script>
 {% endblock %}
