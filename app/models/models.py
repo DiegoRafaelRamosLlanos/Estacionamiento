@@ -43,10 +43,11 @@ class Vehicle(db.Model):
 class MonthlyClient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     plate = db.Column(db.String(10), nullable=False, unique=True)
+    owner_name = db.Column(db.String(100), nullable=False)  # ⭐ NUEVO: Titular del vehículo
     model = db.Column(db.String(50))
     phone = db.Column(db.String(20))
     start_date = db.Column(db.DateTime, nullable=False)
-    duration_months = db.Column(db.Integer, default=1)  # NUEVO: duración en meses
+    duration_months = db.Column(db.Integer, default=1)
     vehicle_type = db.Column(db.String(10), nullable=False)  # 'auto' or 'moto'
     created_at = db.Column(db.DateTime, default=datetime.now)
     
@@ -79,7 +80,7 @@ class MonthlyClient(db.Model):
             return f"{self.duration_months} meses"
     
     def __repr__(self):
-        return f'<MonthlyClient {self.plate}>'
+        return f'<MonthlyClient {self.plate} - {self.owner_name}>'
 
 @login_manager.user_loader
 def load_user(id):

@@ -10,8 +10,27 @@
       <div class="card-body">
         <form id="monthlyForm">
           <div class="row g-3">
+            <!-- ⭐ NUEVO: Campo Titular -->
             <div class="col-md-6">
-              <label for="plate" class="form-label fw-semibold">Patente</label>
+              <label for="owner_name" class="form-label fw-semibold">
+                <i class="bi bi-person-fill text-primary"></i> Titular del
+                Vehículo *
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="owner_name"
+                name="owner_name"
+                placeholder="Nombre completo del titular"
+                required
+              />
+              <small class="text-muted">Nombre del propietario o cliente</small>
+            </div>
+
+            <div class="col-md-6">
+              <label for="plate" class="form-label fw-semibold"
+                >Patente *</label
+              >
               <input
                 type="text"
                 class="form-control"
@@ -24,7 +43,7 @@
             </div>
 
             <div class="col-md-6">
-              <label for="model" class="form-label fw-semibold">Modelo</label>
+              <label for="model" class="form-label fw-semibold">Modelo *</label>
               <input
                 type="text"
                 class="form-control"
@@ -36,7 +55,9 @@
             </div>
 
             <div class="col-md-6">
-              <label for="phone" class="form-label fw-semibold">Teléfono</label>
+              <label for="phone" class="form-label fw-semibold"
+                >Teléfono *</label
+              >
               <input
                 type="tel"
                 class="form-control"
@@ -49,7 +70,7 @@
 
             <div class="col-md-6">
               <label for="type" class="form-label fw-semibold"
-                >Tipo de Vehículo</label
+                >Tipo de Vehículo *</label
               >
               <select class="form-select" id="type" name="type" required>
                 <option value="auto">🚗 Auto</option>
@@ -59,7 +80,7 @@
 
             <div class="col-md-6">
               <label for="start_date" class="form-label fw-semibold"
-                >Fecha de Inicio del Abono</label
+                >Fecha de Inicio del Abono *</label
               >
               <input
                 type="date"
@@ -70,9 +91,9 @@
               />
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-12">
               <label for="duration_months" class="form-label fw-semibold"
-                >Duración del Abono</label
+                >Duración del Abono *</label
               >
               <select
                 class="form-select"
@@ -138,14 +159,15 @@
           <table class="table table-hover">
             <thead>
               <tr>
+                <th><i class="bi bi-person-circle"></i> Titular</th>
                 <th>Patente</th>
                 <th>Modelo</th>
                 <th>Tipo</th>
                 <th>Teléfono</th>
-                <th>Fecha de Inicio</th>
+                <th>Inicio</th>
                 <th>Duración</th>
                 <th>Vencimiento</th>
-                <th>Días Restantes</th>
+                <th>Días Rest.</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -155,7 +177,8 @@
               <tr
                 class="{% if client.is_expired() %}table-danger{% elif client.days_remaining() <= 7 %}table-warning{% endif %}"
               >
-                <td><strong>{{ client.plate }}</strong></td>
+                <td><strong>{{ client.owner_name }}</strong></td>
+                <td><span class="badge bg-dark">{{ client.plate }}</span></td>
                 <td>{{ client.model }}</td>
                 <td>
                   {% if client.vehicle_type == 'auto' %} 🚗 Auto {% else %} 🏍️
@@ -199,19 +222,17 @@
                 </td>
                 <td>
                   {% if client.is_expired() %}
-                  <!-- Renovar (solo para vencidos) -->
                   <button
                     class="btn btn-sm btn-danger"
-                    onclick="showRenewModal({{ client.id }}, '{{ client.plate }}')"
+                    onclick="showRenewModal({{ client.id }}, '{{ client.plate }}', '{{ client.owner_name }}')"
                     title="Renovar abono vencido"
                   >
                     <i class="bi bi-arrow-repeat"></i> Renovar
                   </button>
                   {% else %}
-                  <!-- Extender (solo para activos) -->
                   <button
                     class="btn btn-sm btn-info"
-                    onclick="showExtendModal({{ client.id }}, '{{ client.plate }}', '{{ client.get_expiration_date().strftime('%Y-%m-%d') }}', {{ client.days_remaining() }})"
+                    onclick="showExtendModal({{ client.id }}, '{{ client.plate }}', '{{ client.owner_name }}', '{{ client.get_expiration_date().strftime('%Y-%m-%d') }}', {{ client.days_remaining() }})"
                     title="Extender tiempo del abono"
                   >
                     <i class="bi bi-plus-circle"></i> Extender
@@ -221,7 +242,7 @@
                   <form
                     method="POST"
                     action="{{ url_for('main.delete_monthly_client', id=client.id) }}"
-                    onsubmit="return confirm('¿Está seguro de eliminar este cliente?');"
+                    onsubmit="return confirm('¿Está seguro de eliminar el cliente {{ client.owner_name }}?');"
                     class="d-inline"
                   >
                     <button
@@ -243,6 +264,9 @@
           <i class="bi bi-info-circle"></i>
           <strong>Información:</strong>
           <ul class="mb-0 mt-2">
+            <li>
+              <strong>Titular:</strong> Nombre del propietario del vehículo
+            </li>
             <li>Puede elegir la duración del abono: 1, 3, 6 o 12 meses</li>
             <li>Los días se calculan automáticamente (1 mes = 30 días)</li>
             <li>
@@ -252,14 +276,6 @@
             <li>
               <strong>Extender:</strong> Para clientes activos (agrega tiempo
               desde su vencimiento)
-            </li>
-            <li>
-              Los clientes con 7 días o menos aparecen en
-              <span class="badge bg-warning text-dark">AMARILLO</span>
-            </li>
-            <li>
-              Los clientes vencidos aparecen en
-              <span class="badge bg-danger">ROJO</span>
             </li>
           </ul>
         </div>
@@ -274,7 +290,7 @@
   </div>
 </div>
 
-<!-- Modal de Success -->
+<!-- Modales (iguales que antes) -->
 <div class="modal fade" id="successModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -287,7 +303,7 @@
         ></button>
       </div>
       <div class="modal-body">
-        <p id="successMessage"></p>
+        <p id="successMessage" style="white-space: pre-line"></p>
       </div>
       <div class="modal-footer">
         <button
@@ -303,7 +319,6 @@
   </div>
 </div>
 
-<!-- Modal de Error -->
 <div class="modal fade" id="errorModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -329,7 +344,7 @@
   </div>
 </div>
 
-<!-- Modal de Renovación (Solo para VENCIDOS) -->
+<!-- Modales de Renovar y Extender (sin cambios) -->
 <div class="modal fade" id="renewModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -349,10 +364,13 @@
             <i class="bi bi-exclamation-triangle"></i>
             <strong>Abono vencido</strong> - Se renovará desde hoy
           </div>
-
-          <p>Renovar abono para: <strong id="renewPlate"></strong></p>
+          <p>
+            Renovar abono para: <strong id="renewOwner"></strong> (<span
+              id="renewPlate"
+            ></span
+            >)
+          </p>
           <input type="hidden" id="renewClientId" name="client_id" />
-
           <div class="mb-3">
             <label for="renew_duration_months" class="form-label fw-semibold">
               Nueva Duración
@@ -369,7 +387,6 @@
               <option value="12">1 año (365 días)</option>
             </select>
           </div>
-
           <div class="alert alert-info" id="renewPreview">
             <strong>Fecha de inicio:</strong> Hoy<br />
             <strong>Nueva fecha de vencimiento:</strong><br />
@@ -393,7 +410,6 @@
   </div>
 </div>
 
-<!-- Modal de Extensión (Solo para ACTIVOS) -->
 <div class="modal fade" id="extendModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -414,15 +430,18 @@
             <strong>Abono activo</strong> - Se extenderá desde su vencimiento
             actual
           </div>
-
-          <p>Extender abono para: <strong id="extendPlate"></strong></p>
+          <p>
+            Extender abono para: <strong id="extendOwner"></strong> (<span
+              id="extendPlate"
+            ></span
+            >)
+          </p>
           <input type="hidden" id="extendClientId" name="client_id" />
           <input
             type="hidden"
             id="currentExpiration"
             name="current_expiration"
           />
-
           <div class="mb-3">
             <div class="card bg-light">
               <div class="card-body">
@@ -439,7 +458,6 @@
               </div>
             </div>
           </div>
-
           <div class="mb-3">
             <label for="extend_duration_months" class="form-label fw-semibold">
               Tiempo a Agregar
@@ -456,7 +474,6 @@
               <option value="12">+ 1 año (365 días)</option>
             </select>
           </div>
-
           <div class="alert alert-info" id="extendPreview">
             <strong>Nuevo vencimiento:</strong><br />
             <span id="extendExpiration" class="fs-5"></span><br />
@@ -485,25 +502,20 @@
 {% endblock %} {% block extra_js %}
 <script>
   $(document).ready(function () {
-    // Establecer fecha de hoy como valor por defecto
     const today = new Date().toISOString().split("T")[0];
     $("#start_date").val(today);
 
-    // Calcular y mostrar fecha de vencimiento
     function calculateExpiration() {
       const startDateInput = $("#start_date").val();
       const durationMonths = parseInt($("#duration_months").val());
-
       if (!startDateInput) {
         $("#expirationPreview").hide();
         return;
       }
-
       const totalDays = durationMonths * 30;
       const startDate = new Date(startDateInput + "T00:00:00");
       const expirationDate = new Date(startDate);
       expirationDate.setDate(expirationDate.getDate() + totalDays);
-
       const options = {
         weekday: "long",
         year: "numeric",
@@ -511,7 +523,6 @@
         day: "numeric",
       };
       const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-
       $("#expirationDate").text(expirationStr);
       $("#totalDays").text(totalDays + " días");
       $("#expirationPreview").fadeIn();
@@ -520,15 +531,12 @@
     $("#start_date, #duration_months").on("change", calculateExpiration);
     calculateExpiration();
 
-    // Calcular renovación (desde hoy)
     $("#renew_duration_months").on("change", function () {
       const durationMonths = parseInt($(this).val());
       const totalDays = durationMonths * 30;
-
       const today = new Date();
       const expirationDate = new Date(today);
       expirationDate.setDate(expirationDate.getDate() + totalDays);
-
       const options = {
         weekday: "long",
         year: "numeric",
@@ -536,19 +544,15 @@
         day: "numeric",
       };
       const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-
       $("#renewExpiration").text(expirationStr);
     });
 
-    // Calcular extensión (desde vencimiento actual)
     $("#extend_duration_months").on("change", function () {
       const durationMonths = parseInt($(this).val());
       const totalDays = durationMonths * 30;
       const currentExp = new Date($("#currentExpiration").val() + "T00:00:00");
-
       const newExpirationDate = new Date(currentExp);
       newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
-
       const options = {
         weekday: "long",
         year: "numeric",
@@ -559,27 +563,20 @@
         "es-AR",
         options
       );
-
-      // Calcular días totales desde hoy
       const today = new Date();
       const diffTime = newExpirationDate - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
       $("#extendExpiration").text(expirationStr);
       $("#extendTotalDays").text(diffDays);
     });
 
-    // Formulario de registro
     $("#monthlyForm").on("submit", function (e) {
       e.preventDefault();
-
       const formData = new FormData(this);
       const submitBtn = $(this).find('button[type="submit"]');
-
       submitBtn
         .prop("disabled", true)
         .html('<i class="spinner-border spinner-border-sm"></i> Procesando...');
-
       $.ajax({
         url: "/monthly/add",
         method: "POST",
@@ -607,16 +604,12 @@
       });
     });
 
-    // Formulario de renovación
     $("#renewForm").on("submit", function (e) {
       e.preventDefault();
-
       const clientId = $("#renewClientId").val();
       const duration = $("#renew_duration_months").val();
-
       const formData = new FormData();
       formData.append("duration_months", duration);
-
       $.ajax({
         url: `/monthly/renew/${clientId}`,
         method: "POST",
@@ -638,16 +631,12 @@
       });
     });
 
-    // Formulario de extensión
     $("#extendForm").on("submit", function (e) {
       e.preventDefault();
-
       const clientId = $("#extendClientId").val();
       const duration = $("#extend_duration_months").val();
-
       const formData = new FormData();
       formData.append("duration_months", duration);
-
       $.ajax({
         url: `/monthly/renew/${clientId}`,
         method: "POST",
@@ -672,19 +661,15 @@
     });
   });
 
-  // Función para mostrar modal de renovación (VENCIDOS)
-  function showRenewModal(clientId, plate) {
+  function showRenewModal(clientId, plate, ownerName) {
     $("#renewClientId").val(clientId);
     $("#renewPlate").text(plate);
-
-    // Calcular fecha inicial
+    $("#renewOwner").text(ownerName);
     const durationMonths = parseInt($("#renew_duration_months").val());
     const totalDays = durationMonths * 30;
-
     const today = new Date();
     const expirationDate = new Date(today);
     expirationDate.setDate(expirationDate.getDate() + totalDays);
-
     const options = {
       weekday: "long",
       year: "numeric",
@@ -692,18 +677,21 @@
       day: "numeric",
     };
     const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-
     $("#renewExpiration").text(expirationStr);
     $("#renewModal").modal("show");
   }
 
-  // Función para mostrar modal de extensión (ACTIVOS)
-  function showExtendModal(clientId, plate, currentExpiration, daysRemaining) {
+  function showExtendModal(
+    clientId,
+    plate,
+    ownerName,
+    currentExpiration,
+    daysRemaining
+  ) {
     $("#extendClientId").val(clientId);
     $("#extendPlate").text(plate);
+    $("#extendOwner").text(ownerName);
     $("#currentExpiration").val(currentExpiration);
-
-    // Mostrar vencimiento actual
     const expDate = new Date(currentExpiration + "T00:00:00");
     const options = {
       year: "numeric",
@@ -711,27 +699,18 @@
       day: "numeric",
     };
     const expStr = expDate.toLocaleDateString("es-AR", options);
-
     $("#currentExpirationDisplay").text(expStr);
     $("#daysRemainingDisplay").text(daysRemaining);
-
-    // Calcular nueva fecha
     const durationMonths = parseInt($("#extend_duration_months").val());
     const totalDays = durationMonths * 30;
-
     const newExpirationDate = new Date(expDate);
     newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
-
     const newExpStr = newExpirationDate.toLocaleDateString("es-AR", options);
-
-    // Calcular días totales desde hoy
     const today = new Date();
     const diffTime = newExpirationDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     $("#extendExpiration").text(newExpStr);
     $("#extendTotalDays").text(diffDays);
-
     $("#extendModal").modal("show");
   }
 </script>
