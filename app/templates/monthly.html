@@ -147,16 +147,49 @@
       </div>
     </div>
 
+    <!-- REEMPLAZAR LA SECCIÓN DE LA TABLA EN monthly.html -->
+    <!-- Desde la línea "Clientes Mensuales Activos" hasta antes de los modales -->
+
     <div class="card">
       <div class="card-header bg-dark text-white">
-        <h4 class="mb-0">
-          <i class="bi bi-people"></i> Clientes Mensuales Activos
-        </h4>
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h4 class="mb-0">
+              <i class="bi bi-people"></i> Clientes Mensuales Activos
+            </h4>
+          </div>
+          <div class="col-md-6">
+            <div class="input-group">
+              <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control"
+                id="searchClients"
+                placeholder="Buscar patente, titular, modelo, teléfono o estado..."
+                style="text-transform: uppercase"
+              />
+              <button
+                class="btn btn-outline-light"
+                type="button"
+                id="clearSearch"
+                style="display: none"
+              >
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </div>
+            <small class="text-white-50" id="searchResults">
+              Mostrando <span id="resultsCount">0</span> de
+              <span id="totalCount">0</span> clientes
+            </small>
+          </div>
+        </div>
       </div>
       <div class="card-body">
         {% if clients %}
         <div class="table-responsive">
-          <table class="table table-hover">
+          <table class="table table-hover" id="clientsTable">
             <thead>
               <tr>
                 <th><i class="bi bi-person-circle"></i> Titular</th>
@@ -172,10 +205,15 @@
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="clientsTableBody">
               {% for client in clients %}
               <tr
-                class="{% if client.is_expired() %}table-danger{% elif client.days_remaining() <= 7 %}table-warning{% endif %}"
+                class="client-row {% if client.is_expired() %}table-danger{% elif client.days_remaining() <= 7 %}table-warning{% endif %}"
+                data-plate="{{ client.plate }}"
+                data-owner="{{ client.owner_name|lower }}"
+                data-model="{{ client.model|lower }}"
+                data-phone="{{ client.phone }}"
+                data-status="{% if client.is_expired() %}vencido{% elif client.days_remaining() <= 7 %}por vencer{% else %}activo{% endif %}"
               >
                 <td><strong>{{ client.owner_name }}</strong></td>
                 <td><span class="badge bg-dark">{{ client.plate }}</span></td>
@@ -260,6 +298,22 @@
           </table>
         </div>
 
+        <!-- Mensaje cuando no hay resultados -->
+        <div
+          id="noResults"
+          class="text-center py-5 text-muted"
+          style="display: none"
+        >
+          <i class="bi bi-search" style="font-size: 3rem"></i>
+          <p class="mt-3">
+            No se encontraron resultados para "<strong id="searchTerm"></strong
+            >"
+          </p>
+          <button class="btn btn-primary" onclick="clearSearchInput()">
+            <i class="bi bi-arrow-counterclockwise"></i> Limpiar búsqueda
+          </button>
+        </div>
+
         <div class="alert alert-info mt-3">
           <i class="bi bi-info-circle"></i>
           <strong>Información:</strong>
@@ -277,6 +331,10 @@
               <strong>Extender:</strong> Para clientes activos (agrega tiempo
               desde su vencimiento)
             </li>
+            <li>
+              <strong>🔍 Búsqueda:</strong> Escriba para filtrar en tiempo real
+              por cualquier campo
+            </li>
           </ul>
         </div>
         {% else %}
@@ -287,431 +345,589 @@
         {% endif %}
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Modales (iguales que antes) -->
-<div class="modal fade" id="successModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title"><i class="bi bi-check-circle"></i> Éxito</h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <p id="successMessage" style="white-space: pre-line"></p>
-      </div>
-      <div class="modal-footer">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          data-bs-dismiss="modal"
-          onclick="location.reload()"
-        >
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+    <script>
+      // ============================================
+      // BUSCADOR DE CLIENTES EN TIEMPO REAL
+      // ============================================
 
-<div class="modal fade" id="errorModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-exclamation-triangle"></i> Error
-        </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <p id="errorMessage"></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+      document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("searchClients");
+        const clearBtn = document.getElementById("clearSearch");
+        const tableBody = document.getElementById("clientsTableBody");
+        const noResults = document.getElementById("noResults");
+        const resultsCount = document.getElementById("resultsCount");
+        const totalCount = document.getElementById("totalCount");
+        const rows = document.querySelectorAll(".client-row");
 
-<!-- Modales de Renovar y Extender (sin cambios) -->
-<div class="modal fade" id="renewModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-arrow-repeat"></i> Renovar Abono Vencido
-        </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <form id="renewForm">
-        <div class="modal-body">
-          <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle"></i>
-            <strong>Abono vencido</strong> - Se renovará desde hoy
+        // Establecer total inicial
+        if (totalCount && resultsCount) {
+          totalCount.textContent = rows.length;
+          resultsCount.textContent = rows.length;
+        }
+
+        // Función de búsqueda
+        function searchClients() {
+          if (!searchInput) return;
+
+          const searchTerm = searchInput.value.toUpperCase().trim();
+
+          // Mostrar/ocultar botón de limpiar
+          if (clearBtn) {
+            clearBtn.style.display = searchTerm.length > 0 ? "block" : "none";
+          }
+
+          if (searchTerm === "") {
+            // Mostrar todos
+            rows.forEach((row) => (row.style.display = ""));
+            if (resultsCount) resultsCount.textContent = rows.length;
+            if (noResults) noResults.style.display = "none";
+            return;
+          }
+
+          let visibleCount = 0;
+
+          rows.forEach((row) => {
+            const plate = (row.dataset.plate || "").toUpperCase();
+            const owner = (row.dataset.owner || "").toUpperCase();
+            const model = (row.dataset.model || "").toUpperCase();
+            const phone = (row.dataset.phone || "").toUpperCase();
+            const status = (row.dataset.status || "").toUpperCase();
+
+            // Buscar en todos los campos
+            const searchableText = `${plate} ${owner} ${model} ${phone} ${status}`;
+
+            if (searchableText.includes(searchTerm)) {
+              row.style.display = "";
+              visibleCount++;
+            } else {
+              row.style.display = "none";
+            }
+          });
+
+          // Actualizar contador
+          if (resultsCount) resultsCount.textContent = visibleCount;
+
+          // Mostrar mensaje si no hay resultados
+          if (visibleCount === 0) {
+            const searchTermElement = document.getElementById("searchTerm");
+            if (searchTermElement)
+              searchTermElement.textContent = searchInput.value;
+            if (noResults) noResults.style.display = "block";
+          } else {
+            if (noResults) noResults.style.display = "none";
+          }
+        }
+
+        // Event listeners
+        if (searchInput) {
+          searchInput.addEventListener("input", searchClients);
+          searchInput.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+              clearSearchInput();
+            }
+          });
+        }
+
+        if (clearBtn) {
+          clearBtn.addEventListener("click", clearSearchInput);
+        }
+
+        // Función para limpiar búsqueda
+        window.clearSearchInput = function () {
+          if (searchInput) {
+            searchInput.value = "";
+            searchClients();
+            searchInput.focus();
+          }
+        };
+      });
+    </script>
+
+    <style>
+      /* Estilos para el buscador */
+      #searchClients {
+        border-left: none;
+      }
+
+      #searchClients:focus {
+        border-color: #6c757d;
+        box-shadow: none;
+      }
+
+      .input-group-text {
+        border-right: none;
+      }
+
+      #clearSearch {
+        border-left: 1px solid #dee2e6;
+      }
+
+      /* Animación suave al ocultar/mostrar filas */
+      .client-row {
+        transition: opacity 0.2s ease-in-out;
+      }
+
+      /* Resaltar resultados de búsqueda */
+      #searchClients:not(:placeholder-shown) ~ tbody .client-row {
+        opacity: 1;
+      }
+    </style>
+
+    <!-- Modales (iguales que antes) -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-check-circle"></i> Éxito
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
-          <p>
-            Renovar abono para: <strong id="renewOwner"></strong> (<span
-              id="renewPlate"
-            ></span
-            >)
-          </p>
-          <input type="hidden" id="renewClientId" name="client_id" />
-          <div class="mb-3">
-            <label for="renew_duration_months" class="form-label fw-semibold">
-              Nueva Duración
-            </label>
-            <select
-              class="form-select"
-              id="renew_duration_months"
-              name="duration_months"
-              required
+          <div class="modal-body">
+            <p id="successMessage" style="white-space: pre-line"></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+              onclick="location.reload()"
             >
-              <option value="1">1 mes (30 días)</option>
-              <option value="3">3 meses (90 días)</option>
-              <option value="6">6 meses (180 días)</option>
-              <option value="12">1 año (365 días)</option>
-            </select>
-          </div>
-          <div class="alert alert-info" id="renewPreview">
-            <strong>Fecha de inicio:</strong> Hoy<br />
-            <strong>Nueva fecha de vencimiento:</strong><br />
-            <span id="renewExpiration" class="fs-5"></span>
+              Cerrar
+            </button>
           </div>
         </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Cancelar
-          </button>
-          <button type="submit" class="btn btn-danger">
-            <i class="bi bi-check-circle"></i> Renovar Abono
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="extendModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-info text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-plus-circle"></i> Extender Tiempo de Abono
-        </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
       </div>
-      <form id="extendForm">
-        <div class="modal-body">
-          <div class="alert alert-success">
-            <i class="bi bi-check-circle"></i>
-            <strong>Abono activo</strong> - Se extenderá desde su vencimiento
-            actual
+    </div>
+
+    <div class="modal fade" id="errorModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-exclamation-triangle"></i> Error
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
-          <p>
-            Extender abono para: <strong id="extendOwner"></strong> (<span
-              id="extendPlate"
-            ></span
-            >)
-          </p>
-          <input type="hidden" id="extendClientId" name="client_id" />
-          <input
-            type="hidden"
-            id="currentExpiration"
-            name="current_expiration"
-          />
-          <div class="mb-3">
-            <div class="card bg-light">
-              <div class="card-body">
-                <strong>Vencimiento actual:</strong><br />
-                <span
-                  id="currentExpirationDisplay"
-                  class="fs-5 text-primary"
+          <div class="modal-body">
+            <p id="errorMessage"></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modales de Renovar y Extender (sin cambios) -->
+    <div class="modal fade" id="renewModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-arrow-repeat"></i> Renovar Abono Vencido
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="renewForm">
+            <div class="modal-body">
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Abono vencido</strong> - Se renovará desde hoy
+              </div>
+              <p>
+                Renovar abono para: <strong id="renewOwner"></strong> (<span
+                  id="renewPlate"
                 ></span
-                ><br />
+                >)
+              </p>
+              <input type="hidden" id="renewClientId" name="client_id" />
+              <div class="mb-3">
+                <label
+                  for="renew_duration_months"
+                  class="form-label fw-semibold"
+                >
+                  Nueva Duración
+                </label>
+                <select
+                  class="form-select"
+                  id="renew_duration_months"
+                  name="duration_months"
+                  required
+                >
+                  <option value="1">1 mes (30 días)</option>
+                  <option value="3">3 meses (90 días)</option>
+                  <option value="6">6 meses (180 días)</option>
+                  <option value="12">1 año (365 días)</option>
+                </select>
+              </div>
+              <div class="alert alert-info" id="renewPreview">
+                <strong>Fecha de inicio:</strong> Hoy<br />
+                <strong>Nueva fecha de vencimiento:</strong><br />
+                <span id="renewExpiration" class="fs-5"></span>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-check-circle"></i> Renovar Abono
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="extendModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-plus-circle"></i> Extender Tiempo de Abono
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="extendForm">
+            <div class="modal-body">
+              <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i>
+                <strong>Abono activo</strong> - Se extenderá desde su
+                vencimiento actual
+              </div>
+              <p>
+                Extender abono para: <strong id="extendOwner"></strong> (<span
+                  id="extendPlate"
+                ></span
+                >)
+              </p>
+              <input type="hidden" id="extendClientId" name="client_id" />
+              <input
+                type="hidden"
+                id="currentExpiration"
+                name="current_expiration"
+              />
+              <div class="mb-3">
+                <div class="card bg-light">
+                  <div class="card-body">
+                    <strong>Vencimiento actual:</strong><br />
+                    <span
+                      id="currentExpirationDisplay"
+                      class="fs-5 text-primary"
+                    ></span
+                    ><br />
+                    <small class="text-muted">
+                      <i class="bi bi-clock"></i>
+                      <span id="daysRemainingDisplay"></span> días restantes
+                    </small>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label
+                  for="extend_duration_months"
+                  class="form-label fw-semibold"
+                >
+                  Tiempo a Agregar
+                </label>
+                <select
+                  class="form-select"
+                  id="extend_duration_months"
+                  name="duration_months"
+                  required
+                >
+                  <option value="1">+ 1 mes (30 días)</option>
+                  <option value="3">+ 3 meses (90 días)</option>
+                  <option value="6">+ 6 meses (180 días)</option>
+                  <option value="12">+ 1 año (365 días)</option>
+                </select>
+              </div>
+              <div class="alert alert-info" id="extendPreview">
+                <strong>Nuevo vencimiento:</strong><br />
+                <span id="extendExpiration" class="fs-5"></span><br />
                 <small class="text-muted">
-                  <i class="bi bi-clock"></i>
-                  <span id="daysRemainingDisplay"></span> días restantes
+                  Total: <span id="extendTotalDays"></span> días desde hoy
                 </small>
               </div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label for="extend_duration_months" class="form-label fw-semibold">
-              Tiempo a Agregar
-            </label>
-            <select
-              class="form-select"
-              id="extend_duration_months"
-              name="duration_months"
-              required
-            >
-              <option value="1">+ 1 mes (30 días)</option>
-              <option value="3">+ 3 meses (90 días)</option>
-              <option value="6">+ 6 meses (180 días)</option>
-              <option value="12">+ 1 año (365 días)</option>
-            </select>
-          </div>
-          <div class="alert alert-info" id="extendPreview">
-            <strong>Nuevo vencimiento:</strong><br />
-            <span id="extendExpiration" class="fs-5"></span><br />
-            <small class="text-muted">
-              Total: <span id="extendTotalDays"></span> días desde hoy
-            </small>
-          </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-info">
+                <i class="bi bi-check-circle"></i> Extender Abono
+              </button>
+            </div>
+          </form>
         </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Cancelar
-          </button>
-          <button type="submit" class="btn btn-info">
-            <i class="bi bi-check-circle"></i> Extender Abono
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
+
+    {% endblock %} {% block extra_js %}
+    <script>
+      $(document).ready(function () {
+        const today = new Date().toISOString().split("T")[0];
+        $("#start_date").val(today);
+
+        function calculateExpiration() {
+          const startDateInput = $("#start_date").val();
+          const durationMonths = parseInt($("#duration_months").val());
+          if (!startDateInput) {
+            $("#expirationPreview").hide();
+            return;
+          }
+          const totalDays = durationMonths * 30;
+          const startDate = new Date(startDateInput + "T00:00:00");
+          const expirationDate = new Date(startDate);
+          expirationDate.setDate(expirationDate.getDate() + totalDays);
+          const options = {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          };
+          const expirationStr = expirationDate.toLocaleDateString(
+            "es-AR",
+            options
+          );
+          $("#expirationDate").text(expirationStr);
+          $("#totalDays").text(totalDays + " días");
+          $("#expirationPreview").fadeIn();
+        }
+
+        $("#start_date, #duration_months").on("change", calculateExpiration);
+        calculateExpiration();
+
+        $("#renew_duration_months").on("change", function () {
+          const durationMonths = parseInt($(this).val());
+          const totalDays = durationMonths * 30;
+          const today = new Date();
+          const expirationDate = new Date(today);
+          expirationDate.setDate(expirationDate.getDate() + totalDays);
+          const options = {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          };
+          const expirationStr = expirationDate.toLocaleDateString(
+            "es-AR",
+            options
+          );
+          $("#renewExpiration").text(expirationStr);
+        });
+
+        $("#extend_duration_months").on("change", function () {
+          const durationMonths = parseInt($(this).val());
+          const totalDays = durationMonths * 30;
+          const currentExp = new Date(
+            $("#currentExpiration").val() + "T00:00:00"
+          );
+          const newExpirationDate = new Date(currentExp);
+          newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
+          const options = {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          };
+          const expirationStr = newExpirationDate.toLocaleDateString(
+            "es-AR",
+            options
+          );
+          const today = new Date();
+          const diffTime = newExpirationDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          $("#extendExpiration").text(expirationStr);
+          $("#extendTotalDays").text(diffDays);
+        });
+
+        $("#monthlyForm").on("submit", function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const submitBtn = $(this).find('button[type="submit"]');
+          submitBtn
+            .prop("disabled", true)
+            .html(
+              '<i class="spinner-border spinner-border-sm"></i> Procesando...'
+            );
+          $.ajax({
+            url: "/monthly/add",
+            method: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+              if (response.success) {
+                $("#successMessage").text(response.message);
+                $("#successModal").modal("show");
+              }
+            },
+            error: function (xhr) {
+              const error = xhr.responseJSON;
+              $("#errorMessage").text(
+                error.message || "Error al registrar el cliente"
+              );
+              $("#errorModal").modal("show");
+            },
+            complete: function () {
+              submitBtn
+                .prop("disabled", false)
+                .html('<i class="bi bi-plus-circle"></i> Registrar Cliente');
+            },
+          });
+        });
+
+        $("#renewForm").on("submit", function (e) {
+          e.preventDefault();
+          const clientId = $("#renewClientId").val();
+          const duration = $("#renew_duration_months").val();
+          const formData = new FormData();
+          formData.append("duration_months", duration);
+          $.ajax({
+            url: `/monthly/renew/${clientId}`,
+            method: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+              if (response.success) {
+                $("#renewModal").modal("hide");
+                $("#successMessage").text(response.message);
+                $("#successModal").modal("show");
+              }
+            },
+            error: function (xhr) {
+              const error = xhr.responseJSON;
+              $("#errorMessage").text(
+                error.message || "Error al renovar el abono"
+              );
+              $("#errorModal").modal("show");
+            },
+          });
+        });
+
+        $("#extendForm").on("submit", function (e) {
+          e.preventDefault();
+          const clientId = $("#extendClientId").val();
+          const duration = $("#extend_duration_months").val();
+          const formData = new FormData();
+          formData.append("duration_months", duration);
+          $.ajax({
+            url: `/monthly/renew/${clientId}`,
+            method: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+              if (response.success) {
+                $("#extendModal").modal("hide");
+                $("#successMessage").text(response.message);
+                $("#successModal").modal("show");
+              }
+            },
+            error: function (xhr) {
+              const error = xhr.responseJSON;
+              $("#errorMessage").text(
+                error.message || "Error al extender el abono"
+              );
+              $("#errorModal").modal("show");
+            },
+          });
+        });
+      });
+
+      function showRenewModal(clientId, plate, ownerName) {
+        $("#renewClientId").val(clientId);
+        $("#renewPlate").text(plate);
+        $("#renewOwner").text(ownerName);
+        const durationMonths = parseInt($("#renew_duration_months").val());
+        const totalDays = durationMonths * 30;
+        const today = new Date();
+        const expirationDate = new Date(today);
+        expirationDate.setDate(expirationDate.getDate() + totalDays);
+        const options = {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        };
+        const expirationStr = expirationDate.toLocaleDateString(
+          "es-AR",
+          options
+        );
+        $("#renewExpiration").text(expirationStr);
+        $("#renewModal").modal("show");
+      }
+
+      function showExtendModal(
+        clientId,
+        plate,
+        ownerName,
+        currentExpiration,
+        daysRemaining
+      ) {
+        $("#extendClientId").val(clientId);
+        $("#extendPlate").text(plate);
+        $("#extendOwner").text(ownerName);
+        $("#currentExpiration").val(currentExpiration);
+        const expDate = new Date(currentExpiration + "T00:00:00");
+        const options = {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        };
+        const expStr = expDate.toLocaleDateString("es-AR", options);
+        $("#currentExpirationDisplay").text(expStr);
+        $("#daysRemainingDisplay").text(daysRemaining);
+        const durationMonths = parseInt($("#extend_duration_months").val());
+        const totalDays = durationMonths * 30;
+        const newExpirationDate = new Date(expDate);
+        newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
+        const newExpStr = newExpirationDate.toLocaleDateString(
+          "es-AR",
+          options
+        );
+        const today = new Date();
+        const diffTime = newExpirationDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        $("#extendExpiration").text(newExpStr);
+        $("#extendTotalDays").text(diffDays);
+        $("#extendModal").modal("show");
+      }
+    </script>
+    {% endblock %}
   </div>
 </div>
-
-{% endblock %} {% block extra_js %}
-<script>
-  $(document).ready(function () {
-    const today = new Date().toISOString().split("T")[0];
-    $("#start_date").val(today);
-
-    function calculateExpiration() {
-      const startDateInput = $("#start_date").val();
-      const durationMonths = parseInt($("#duration_months").val());
-      if (!startDateInput) {
-        $("#expirationPreview").hide();
-        return;
-      }
-      const totalDays = durationMonths * 30;
-      const startDate = new Date(startDateInput + "T00:00:00");
-      const expirationDate = new Date(startDate);
-      expirationDate.setDate(expirationDate.getDate() + totalDays);
-      const options = {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-      const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-      $("#expirationDate").text(expirationStr);
-      $("#totalDays").text(totalDays + " días");
-      $("#expirationPreview").fadeIn();
-    }
-
-    $("#start_date, #duration_months").on("change", calculateExpiration);
-    calculateExpiration();
-
-    $("#renew_duration_months").on("change", function () {
-      const durationMonths = parseInt($(this).val());
-      const totalDays = durationMonths * 30;
-      const today = new Date();
-      const expirationDate = new Date(today);
-      expirationDate.setDate(expirationDate.getDate() + totalDays);
-      const options = {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-      const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-      $("#renewExpiration").text(expirationStr);
-    });
-
-    $("#extend_duration_months").on("change", function () {
-      const durationMonths = parseInt($(this).val());
-      const totalDays = durationMonths * 30;
-      const currentExp = new Date($("#currentExpiration").val() + "T00:00:00");
-      const newExpirationDate = new Date(currentExp);
-      newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
-      const options = {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-      const expirationStr = newExpirationDate.toLocaleDateString(
-        "es-AR",
-        options
-      );
-      const today = new Date();
-      const diffTime = newExpirationDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      $("#extendExpiration").text(expirationStr);
-      $("#extendTotalDays").text(diffDays);
-    });
-
-    $("#monthlyForm").on("submit", function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      const submitBtn = $(this).find('button[type="submit"]');
-      submitBtn
-        .prop("disabled", true)
-        .html('<i class="spinner-border spinner-border-sm"></i> Procesando...');
-      $.ajax({
-        url: "/monthly/add",
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          if (response.success) {
-            $("#successMessage").text(response.message);
-            $("#successModal").modal("show");
-          }
-        },
-        error: function (xhr) {
-          const error = xhr.responseJSON;
-          $("#errorMessage").text(
-            error.message || "Error al registrar el cliente"
-          );
-          $("#errorModal").modal("show");
-        },
-        complete: function () {
-          submitBtn
-            .prop("disabled", false)
-            .html('<i class="bi bi-plus-circle"></i> Registrar Cliente');
-        },
-      });
-    });
-
-    $("#renewForm").on("submit", function (e) {
-      e.preventDefault();
-      const clientId = $("#renewClientId").val();
-      const duration = $("#renew_duration_months").val();
-      const formData = new FormData();
-      formData.append("duration_months", duration);
-      $.ajax({
-        url: `/monthly/renew/${clientId}`,
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          if (response.success) {
-            $("#renewModal").modal("hide");
-            $("#successMessage").text(response.message);
-            $("#successModal").modal("show");
-          }
-        },
-        error: function (xhr) {
-          const error = xhr.responseJSON;
-          $("#errorMessage").text(error.message || "Error al renovar el abono");
-          $("#errorModal").modal("show");
-        },
-      });
-    });
-
-    $("#extendForm").on("submit", function (e) {
-      e.preventDefault();
-      const clientId = $("#extendClientId").val();
-      const duration = $("#extend_duration_months").val();
-      const formData = new FormData();
-      formData.append("duration_months", duration);
-      $.ajax({
-        url: `/monthly/renew/${clientId}`,
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          if (response.success) {
-            $("#extendModal").modal("hide");
-            $("#successMessage").text(response.message);
-            $("#successModal").modal("show");
-          }
-        },
-        error: function (xhr) {
-          const error = xhr.responseJSON;
-          $("#errorMessage").text(
-            error.message || "Error al extender el abono"
-          );
-          $("#errorModal").modal("show");
-        },
-      });
-    });
-  });
-
-  function showRenewModal(clientId, plate, ownerName) {
-    $("#renewClientId").val(clientId);
-    $("#renewPlate").text(plate);
-    $("#renewOwner").text(ownerName);
-    const durationMonths = parseInt($("#renew_duration_months").val());
-    const totalDays = durationMonths * 30;
-    const today = new Date();
-    const expirationDate = new Date(today);
-    expirationDate.setDate(expirationDate.getDate() + totalDays);
-    const options = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    };
-    const expirationStr = expirationDate.toLocaleDateString("es-AR", options);
-    $("#renewExpiration").text(expirationStr);
-    $("#renewModal").modal("show");
-  }
-
-  function showExtendModal(
-    clientId,
-    plate,
-    ownerName,
-    currentExpiration,
-    daysRemaining
-  ) {
-    $("#extendClientId").val(clientId);
-    $("#extendPlate").text(plate);
-    $("#extendOwner").text(ownerName);
-    $("#currentExpiration").val(currentExpiration);
-    const expDate = new Date(currentExpiration + "T00:00:00");
-    const options = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    };
-    const expStr = expDate.toLocaleDateString("es-AR", options);
-    $("#currentExpirationDisplay").text(expStr);
-    $("#daysRemainingDisplay").text(daysRemaining);
-    const durationMonths = parseInt($("#extend_duration_months").val());
-    const totalDays = durationMonths * 30;
-    const newExpirationDate = new Date(expDate);
-    newExpirationDate.setDate(newExpirationDate.getDate() + totalDays);
-    const newExpStr = newExpirationDate.toLocaleDateString("es-AR", options);
-    const today = new Date();
-    const diffTime = newExpirationDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    $("#extendExpiration").text(newExpStr);
-    $("#extendTotalDays").text(diffDays);
-    $("#extendModal").modal("show");
-  }
-</script>
-{% endblock %}
