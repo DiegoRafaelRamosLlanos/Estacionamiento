@@ -50,6 +50,7 @@ class MonthlyClient(db.Model):
     duration_months = db.Column(db.Integer, default=1)
     vehicle_type = db.Column(db.String(10), nullable=False)  # 'auto' or 'moto'
     created_at = db.Column(db.DateTime, default=datetime.now)
+    registered_by = db.Column(db.String(64))
     
     def get_expiration_date(self):
         """Calcula la fecha de vencimiento según la duración contratada"""
@@ -85,3 +86,4 @@ class MonthlyClient(db.Model):
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
+

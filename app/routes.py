@@ -201,21 +201,19 @@ def vehicle_exit():
 def add_monthly_client():
     try:
         plate = request.form.get('plate').upper().strip()
-        owner_name = request.form.get('owner_name', '').strip()  # ⭐ NUEVO
+        owner_name = request.form.get('owner_name', '').strip()
         model = request.form.get('model')
         phone = request.form.get('phone')
         vehicle_type = request.form.get('type')
         start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
         duration_months = int(request.form.get('duration_months', 1))
         
-        # ⭐ Validar que el titular no esté vacío
         if not owner_name:
             return jsonify({
                 'success': False,
                 'message': 'El nombre del titular es obligatorio'
             }), 400
         
-        # Verificar si ya existe
         existing = MonthlyClient.query.filter_by(plate=plate).first()
         if existing:
             return jsonify({
@@ -225,12 +223,13 @@ def add_monthly_client():
         
         client = MonthlyClient(
             plate=plate,
-            owner_name=owner_name,  # ⭐ NUEVO
+            owner_name=owner_name,
             model=model,
             phone=phone,
             vehicle_type=vehicle_type,
             start_date=start_date,
-            duration_months=duration_months
+            duration_months=duration_months,
+            registered_by=current_user.username  # ⭐ AGREGAR ESTA LÍNEA
         )
         
         db.session.add(client)
@@ -241,7 +240,10 @@ def add_monthly_client():
         
         return jsonify({
             'success': True,
-            'message': f'Cliente mensual registrado correctamente.\nTitular: {owner_name}\nAbono de {duration_text} válido hasta {expiration.strftime("%d/%m/%Y")}'
+            'message': f'Cliente mensual registrado correctamente.\n' + 
+                      f'Titular: {owner_name}\n' +
+                      f'Abono de {duration_text} válido hasta {expiration.strftime("%d/%m/%Y")}\n' +
+                      f'Registrado por: {current_user.username}'  # ⭐ AGREGAR ESTO
         })
         
     except Exception as e:

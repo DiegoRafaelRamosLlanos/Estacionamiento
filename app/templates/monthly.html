@@ -203,6 +203,7 @@
                 <th>Vencimiento</th>
                 <th>Días Rest.</th>
                 <th>Estado</th>
+                <th>Registrado por</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -258,6 +259,13 @@
                     <i class="bi bi-check-circle"></i> ACTIVO
                   </span>
                   {% endif %}
+                </td>
+                <!-- ⭐ NUEVA COLUMNA -->
+                <td>
+                  <small class="text-muted">
+                    <i class="bi bi-person"></i>
+                    {{ client.registered_by or 'Sistema' }}
+                  </small>
                 </td>
                 <td>
                   {% if client.is_expired() %}
