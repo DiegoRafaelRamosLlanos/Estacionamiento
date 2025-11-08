@@ -203,7 +203,9 @@
                 <th>Vencimiento</th>
                 <th>Días Rest.</th>
                 <th>Estado</th>
+                {% if current_user.role == 'admin' %}
                 <th>Registrado por</th>
+                {% endif %}
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -261,12 +263,14 @@
                   {% endif %}
                 </td>
                 <!-- ⭐ NUEVA COLUMNA -->
+                {% if current_user.role == 'admin' %}
                 <td>
                   <small class="text-muted">
                     <i class="bi bi-person"></i>
                     {{ client.registered_by or 'Sistema' }}
                   </small>
                 </td>
+                {% endif %}
                 <td>
                   {% if client.is_expired() %}
                   <button
