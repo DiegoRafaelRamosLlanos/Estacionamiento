@@ -288,7 +288,15 @@
                   >
                     <i class="bi bi-plus-circle"></i> Extender
                   </button>
-                  {% endif %} {% if current_user.role == 'admin' %}
+                  {% if current_user.role == 'admin' %}
+                  <button
+                    class="btn btn-sm btn-warning"
+                    onclick="showEditModal({{ client.id }}, '{{ client.plate }}', '{{ client.owner_name }}', '{{ client.model }}', '{{ client.phone }}', '{{ client.vehicle_type }}')"
+                    title="Editar cliente"
+                  >
+                    <i class="bi bi-pencil"></i> Editar
+                  </button>
+                  {% endif %} {% endif %} {% if current_user.role == 'admin' %}
                   <form
                     method="POST"
                     action="{{ url_for('main.delete_monthly_client', id=client.id) }}"
@@ -852,7 +860,117 @@
         </div>
       </div>
     </div>
+    <!-- Modal de Editar Cliente -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title">
+              <i class="bi bi-pencil"></i> Editar Cliente Mensual
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="editForm">
+            <div class="modal-body">
+              <input type="hidden" id="editClientId" name="client_id" />
 
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="edit_owner_name" class="form-label fw-semibold">
+                    <i class="bi bi-person-fill text-primary"></i> Titular *
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_owner_name"
+                    name="owner_name"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="edit_plate" class="form-label fw-semibold"
+                    >Patente *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_plate"
+                    name="plate"
+                    required
+                    style="text-transform: uppercase"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="edit_model" class="form-label fw-semibold"
+                    >Modelo *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_model"
+                    name="model"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="edit_phone" class="form-label fw-semibold"
+                    >Teléfono *</label
+                  >
+                  <input
+                    type="tel"
+                    class="form-control"
+                    id="edit_phone"
+                    name="phone"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-12">
+                  <label for="edit_type" class="form-label fw-semibold"
+                    >Tipo de Vehículo *</label
+                  >
+                  <select
+                    class="form-select"
+                    id="edit_type"
+                    name="type"
+                    required
+                  >
+                    <option value="auto">🚗 Auto</option>
+                    <option value="moto">🏍️ Moto</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                <strong>Nota:</strong> Esta acción solo edita los datos del
+                cliente. La fecha de inicio y duración del abono no se
+                modifican.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-warning">
+                <i class="bi bi-check-circle"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     {% endblock %} {% block extra_js %}
     <script>
       $(document).ready(function () {
@@ -1085,7 +1203,54 @@
         $("#extendTotalDays").text(diffDays);
         $("#extendModal").modal("show");
       }
+
+      function showEditModal(
+        clientId,
+        plate,
+        ownerName,
+        model,
+        phone,
+        vehicleType
+      ) {
+        $("#editClientId").val(clientId);
+        $("#edit_plate").val(plate);
+        $("#edit_owner_name").val(ownerName);
+        $("#edit_model").val(model);
+        $("#edit_phone").val(phone);
+        $("#edit_type").val(vehicleType);
+
+        $("#editModal").modal("show");
+      }
+
+      $("#editForm").on("submit", function (e) {
+        e.preventDefault();
+        const clientId = $("#editClientId").val();
+        const formData = new FormData(this);
+
+        $.ajax({
+          url: `/monthly/edit/${clientId}`,
+          method: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function (response) {
+            if (response.success) {
+              $("#editModal").modal("hide");
+              $("#successMessage").text(response.message);
+              $("#successModal").modal("show");
+            }
+          },
+          error: function (xhr) {
+            const error = xhr.responseJSON;
+            $("#errorMessage").text(
+              error.message || "Error al actualizar el cliente"
+            );
+            $("#errorModal").modal("show");
+          },
+        });
+      });
     </script>
+
     {% endblock %}
   </div>
 </div>

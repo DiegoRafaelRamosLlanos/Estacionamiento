@@ -341,6 +341,73 @@ def delete_monthly_client(id):
         flash(f'Error al eliminar cliente: {str(e)}', 'error')
         return redirect(url_for('main.monthly_page'))
 
+@main.route('/monthly/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_monthly_client(id):
+    """Editar datos de un cliente mensual (solo admins)"""
+    if current_user.role != 'admin':
+        flash('Acceso denegado. Solo administradores pueden editar clientes.', 'danger')
+        return redirect(url_for('main.monthly_page'))
+    
+    client = MonthlyClient.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            new_plate = request.form.get('plate').upper().strip()
+            owner_name = request.form.get('owner_name', '').strip()
+            model = request.form.get('model')
+            phone = request.form.get('phone')
+            vehicle_type = request.form.get('type')
+            
+            if not owner_name:
+                return jsonify({
+                    'success': False,
+                    'message': 'El nombre del titular es obligatorio'
+                }), 400
+            
+            # Verificar si la nueva patente ya existe (si cambió)
+            if new_plate != client.plate:
+                existing = MonthlyClient.query.filter_by(plate=new_plate).first()
+                if existing:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Ya existe un cliente con la patente {new_plate}'
+                    }), 400
+            
+            # Actualizar datos
+            client.plate = new_plate
+            client.owner_name = owner_name
+            client.model = model
+            client.phone = phone
+            client.vehicle_type = vehicle_type
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Cliente actualizado correctamente.\n' +
+                          f'Patente: {new_plate}\n' +
+                          f'Titular: {owner_name}'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            }), 500
+    
+    # GET: Retornar datos del cliente en formato JSON
+    return jsonify({
+        'id': client.id,
+        'plate': client.plate,
+        'owner_name': client.owner_name,
+        'model': client.model,
+        'phone': client.phone,
+        'vehicle_type': client.vehicle_type
+    })
+
 @main.route('/reports')
 @login_required
 def reports_page():
