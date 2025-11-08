@@ -284,8 +284,7 @@
                   >
                     <i class="bi bi-plus-circle"></i> Extender
                   </button>
-                  {% endif %}
-
+                  {% endif %} {% if current_user.role == 'admin' %}
                   <form
                     method="POST"
                     action="{{ url_for('main.delete_monthly_client', id=client.id) }}"
@@ -300,6 +299,7 @@
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
+                  {% endif %}
                 </td>
               </tr>
               {% endfor %}
