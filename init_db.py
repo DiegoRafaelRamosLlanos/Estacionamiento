@@ -64,24 +64,33 @@ def init_database():
         monthly_clients = [
             {
                 'plate': 'ABC123',
+                'owner_name': 'Juan Carlos García',
                 'model': 'Toyota Corolla 2020',
                 'phone': '3815551234',
                 'vehicle_type': 'auto',
-                'start_date': today - timedelta(days=10)  # Iniciado hace 10 días
+                'start_date': today - timedelta(days=10),
+                'duration_months': 1,
+                'registered_by': 'admin1'
             },
             {
                 'plate': 'XYZ789',
+                'owner_name': 'María López',
                 'model': 'Honda CG 150',
                 'phone': '3815555678',
                 'vehicle_type': 'moto',
-                'start_date': today - timedelta(days=25)  # Iniciado hace 25 días (por vencer)
+                'start_date': today - timedelta(days=25),
+                'duration_months': 1,
+                'registered_by': 'operador1'
             },
             {
                 'plate': 'DEF456',
+                'owner_name': 'Roberto Fernández',
                 'model': 'Ford Focus 2019',
                 'phone': '3815559999',
                 'vehicle_type': 'auto',
-                'start_date': today  # Iniciado hoy
+                'start_date': today,
+                'duration_months': 3,
+                'registered_by': 'admin2'
             },
         ]
         
@@ -90,7 +99,9 @@ def init_database():
             db.session.add(client)
             days_remaining = client.days_remaining()
             expiration = client.get_expiration_date()
-            print(f"  ✓ Cliente mensual creado: {client_data['plate']} (vence: {expiration.strftime('%d/%m/%Y')}, {days_remaining} días restantes)")
+            duration_text = client.get_duration_text()
+            print(f"  ✓ Cliente: {client_data['plate']:10} | {client_data['owner_name']:25} | Abono: {duration_text}")
+            print(f"     Vence: {expiration.strftime('%d/%m/%Y')} ({days_remaining} días restantes)")
         
         # Guardar cambios finales
         db.session.commit()
@@ -114,7 +125,9 @@ def init_database():
             status = "✓ ACTIVO" if not client.is_expired() else "✗ VENCIDO"
             if client.days_remaining() <= 7 and not client.is_expired():
                 status = "⚠ POR VENCER"
-            print(f"  {client.plate:10} | Inicio: {client.start_date.strftime('%d/%m/%Y')} | Vence: {client.get_expiration_date().strftime('%d/%m/%Y')} | {status} ({client.days_remaining()} días)")
+            duration_text = client.get_duration_text()
+            print(f"  {client.plate:10} | {client.owner_name:25} | {duration_text:10}")
+            print(f"             Inicio: {client.start_date.strftime('%d/%m/%Y')} | Vence: {client.get_expiration_date().strftime('%d/%m/%Y')} | {status} ({client.days_remaining()} días)")
         
         print("\n" + "="*70)
         print("🚀 Puede iniciar la aplicación con: python run.py")
