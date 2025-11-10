@@ -28,27 +28,43 @@ def login():
         login_user(user)
         
         # ⭐ REGISTRAR ASISTENCIA DE ENTRADA
-        # Verificar si ya tiene asistencia activa hoy
-        today_attendance = user.get_today_attendance()
+        # Verificar si tiene asistencia ACTIVA (sin logout)
+        active_attendance = user.get_active_attendance()
         
-        if not today_attendance:
-            # Crear nuevo registro de asistencia
-            attendance = Attendance(
-                user_id=user.id,
-                login_time=datetime.now()
-            )
-            db.session.add(attendance)
-            db.session.commit()
-            
-            login_time_str = attendance.login_time.strftime('%H:%M:%S')
-            flash(f'✅ Asistencia registrada: Entrada a las {login_time_str}', 'success')
+        if active_attendance:
+            # YA TIENE UNA SESIÓN ACTIVA
+            login_time_str = active_attendance.login_time.strftime('%H:%M:%S')
+            duration = active_attendance.get_duration_text()
+            flash(f'✅ Sesión continuada - Entrada registrada a las {login_time_str}', 'info')
+            flash(f'⏱️ Tiempo transcurrido: {duration}', 'info')
         else:
-            # Ya tiene asistencia registrada hoy
-            login_time_str = today_attendance.login_time.strftime('%H:%M:%S')
-            if today_attendance.is_active():
-                flash(f'ℹ️ Sesión continuada (entrada registrada a las {login_time_str})', 'info')
+            # NO TIENE SESIÓN ACTIVA - Verificar si ya tiene registro HOY
+            today_attendance = user.get_today_attendance()
+            
+            if today_attendance:
+                # TIENE REGISTRO HOY PERO YA SALIÓ
+                # Crear un NUEVO registro de entrada
+                attendance = Attendance(
+                    user_id=user.id,
+                    login_time=datetime.now()
+                )
+                db.session.add(attendance)
+                db.session.commit()
+                
+                login_time_str = attendance.login_time.strftime('%H:%M:%S')
+                flash(f'✅ Nueva entrada registrada a las {login_time_str}', 'success')
+                flash(f'ℹ️ Ya tenías un registro completado hoy', 'info')
             else:
-                flash(f'ℹ️ Ya completaste tu jornada hoy (entrada: {login_time_str})', 'info')
+                # PRIMER INGRESO DEL DÍA
+                attendance = Attendance(
+                    user_id=user.id,
+                    login_time=datetime.now()
+                )
+                db.session.add(attendance)
+                db.session.commit()
+                
+                login_time_str = attendance.login_time.strftime('%H:%M:%S')
+                flash(f'✅ Asistencia registrada: Entrada a las {login_time_str}', 'success')
         
         # Mensaje de bienvenida con rol
         role_text = "Administrador" if user.role == 'admin' else "Operador"
@@ -70,7 +86,11 @@ def logout():
         db.session.commit()
         
         duration = active_attendance.get_duration_text()
-        flash(f'⏱️ Asistencia finalizada. Tiempo trabajado: {duration}', 'info')
+        hours_text = f"{active_attendance.total_hours:.2f}" if active_attendance.total_hours else "0.00"
+        flash(f'⏱️ Asistencia finalizada. Tiempo trabajado: {duration} ({hours_text} horas)', 'info')
+    else:
+        # No tiene asistencia activa (caso raro)
+        flash(f'ℹ️ Sesión cerrada (sin registro de asistencia activo)', 'info')
     
     logout_user()
     flash('Sesión cerrada correctamente', 'info')
