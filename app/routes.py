@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, flash, redirect, url_for
 from flask_login import login_required, current_user
-from app.models.models import Vehicle, MonthlyClient
+from app.models.models import Vehicle, MonthlyClient, User, Attendance
 from app import db
 import qrcode
 from datetime import datetime
@@ -9,6 +9,8 @@ import io
 import base64
 from flask import send_file, abort
 from datetime import datetime, timedelta
+from functools import wraps
+from flask import abort
 
 main = Blueprint('main', __name__)
 
@@ -579,3 +581,219 @@ def stats_summary():
     }
     
     return jsonify(stats)
+
+# ============================================
+# RUTAS PARA GESTIÓN DE HORARIOS (Solo Admin)
+# ============================================
+# AGREGAR ESTAS RUTAS AL FINAL DE app/routes.py
+
+
+def admin_required(f):
+    """Decorador para rutas que requieren rol admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash('Acceso denegado. Solo administradores pueden acceder a esta sección.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@main.route('/admin/attendance')
+@login_required
+@admin_required
+def attendance_panel():
+    """Panel de control de asistencias"""
+    # Asistencias del día actual
+    today = datetime.now().date()
+    today_attendances = Attendance.query.filter(
+        db.func.date(Attendance.login_time) == today
+    ).order_by(Attendance.login_time.desc()).all()
+    
+    # Usuarios actualmente trabajando
+    active_users = Attendance.query.filter_by(logout_time=None).all()
+    
+    return render_template('attendance.html', 
+                         today_attendances=today_attendances,
+                         active_users=active_users,
+                         now=datetime.now())
+
+@main.route('/admin/attendance/history')
+@login_required
+@admin_required
+def attendance_history():
+    """Historial completo de asistencias"""
+    # Parámetros de filtro
+    user_id = request.args.get('user_id', type=int)
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = Attendance.query
+    
+    # Aplicar filtros
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    
+    if start_date:
+        query = query.filter(Attendance.login_time >= datetime.strptime(start_date, '%Y-%m-%d'))
+    
+    if end_date:
+        end_datetime = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        query = query.filter(Attendance.login_time < end_datetime)
+    
+    attendances = query.order_by(Attendance.login_time.desc()).limit(200).all()
+    users = User.query.all()
+    
+    return render_template('attendance_history.html', 
+                         attendances=attendances,
+                         users=users,
+                         now=datetime.now())
+
+@main.route('/admin/attendance/report/<int:user_id>')
+@login_required
+@admin_required
+def attendance_user_report(user_id):
+    """Reporte de asistencia individual de un usuario"""
+    user = User.query.get_or_404(user_id)
+    
+    # Parámetros de fecha
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Por defecto: último mes
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    query = Attendance.query.filter_by(user_id=user_id)
+    query = query.filter(Attendance.login_time >= datetime.strptime(start_date, '%Y-%m-%d'))
+    
+    end_datetime = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+    query = query.filter(Attendance.login_time < end_datetime)
+    
+    attendances = query.order_by(Attendance.login_time.desc()).all()
+    
+    # Calcular estadísticas
+    total_days = len(attendances)
+    total_hours = sum(a.total_hours or 0 for a in attendances)
+    avg_hours = total_hours / total_days if total_days > 0 else 0
+    
+    # Días con más/menos horas
+    completed_attendances = [a for a in attendances if a.total_hours]
+    max_hours_day = max(completed_attendances, key=lambda x: x.total_hours) if completed_attendances else None
+    min_hours_day = min(completed_attendances, key=lambda x: x.total_hours) if completed_attendances else None
+    
+    stats = {
+        'total_days': total_days,
+        'total_hours': round(total_hours, 2),
+        'avg_hours': round(avg_hours, 2),
+        'max_hours_day': max_hours_day,
+        'min_hours_day': min_hours_day
+    }
+    
+    return render_template('attendance_user_report.html',
+                         user=user,
+                         attendances=attendances,
+                         stats=stats,
+                         start_date=start_date,
+                         end_date=end_date)
+
+@main.route('/admin/attendance/stats')
+@login_required
+@admin_required
+def attendance_stats():
+    """Estadísticas generales de asistencia"""
+    # Semana actual
+    today = datetime.now()
+    week_start = today - timedelta(days=today.weekday())
+    week_attendances = Attendance.query.filter(
+        Attendance.login_time >= week_start
+    ).all()
+    
+    # Mes actual
+    month_start = today.replace(day=1)
+    month_attendances = Attendance.query.filter(
+        Attendance.login_time >= month_start
+    ).all()
+    
+    # Todos los empleados con sus totales
+    users = User.query.all()
+    user_stats = []
+    
+    for user in users:
+        month_user_attendances = [a for a in month_attendances if a.user_id == user.id]
+        total_hours = sum(a.total_hours or 0 for a in month_user_attendances)
+        total_days = len(month_user_attendances)
+        
+        user_stats.append({
+            'user': user,
+            'total_days': total_days,
+            'total_hours': round(total_hours, 2),
+            'avg_hours': round(total_hours / total_days, 2) if total_days > 0 else 0
+        })
+    
+    # Ordenar por horas totales
+    user_stats.sort(key=lambda x: x['total_hours'], reverse=True)
+    
+    return render_template('attendance_stats.html',
+                         user_stats=user_stats,
+                         week_start=week_start,
+                         month_start=month_start)
+
+@main.route('/admin/attendance/export')
+@login_required
+@admin_required
+def attendance_export():
+    """Exportar asistencias a CSV"""
+    import csv
+    from io import StringIO
+    from flask import Response
+    
+    # Parámetros
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = Attendance.query
+    
+    if start_date:
+        query = query.filter(Attendance.login_time >= datetime.strptime(start_date, '%Y-%m-%d'))
+    
+    if end_date:
+        end_datetime = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        query = query.filter(Attendance.login_time < end_datetime)
+    
+    attendances = query.order_by(Attendance.login_time.desc()).all()
+    
+    # Crear CSV
+    si = StringIO()
+    writer = csv.writer(si)
+    
+    # Encabezados
+    writer.writerow(['ID', 'Usuario', 'Nombre', 'Rol', 'Fecha', 'Hora Entrada', 
+                    'Hora Salida', 'Horas Trabajadas', 'Estado'])
+    
+    # Datos
+    for a in attendances:
+        writer.writerow([
+            a.id,
+            a.user.username,
+            a.user.name,
+            a.user.role,
+            a.login_time.strftime('%Y-%m-%d'),
+            a.login_time.strftime('%H:%M:%S'),
+            a.logout_time.strftime('%H:%M:%S') if a.logout_time else 'En curso',
+            f"{a.total_hours:.2f}" if a.total_hours else '0.00',
+            'Completado' if a.logout_time else 'Activo'
+        ])
+    
+    # Preparar respuesta
+    output = si.getvalue()
+    si.close()
+    
+    filename = f"asistencias_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename={filename}"}
+    )

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <h2 class="text-white mb-4">
+      <i class="bi bi-journal-text"></i> Historial de Asistencias
+    </h2>
+  </div>
+</div>
+
+<!-- Filtros de Búsqueda -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros de Búsqueda</h5>
+      </div>
+      <div class="card-body">
+        <form method="GET" action="{{ url_for('main.attendance_history') }}">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Usuario</label>
+              <select class="form-select" name="user_id">
+                <option value="">Todos los usuarios</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if request.args.get('user_id')|int == user.id %}selected{% endif %}>
+                  {{ user.name }} ({{ user.username }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Fecha Inicio</label>
+              <input type="date" class="form-control" name="start_date" 
+                     value="{{ request.args.get('start_date', '') }}">
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Fecha Fin</label>
+              <input type="date" class="form-control" name="end_date" 
+                     value="{{ request.args.get('end_date', '') }}">
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i> Buscar
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resultados -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-table"></i> Registros de Asistencia
+        </h5>
+        <span class="badge bg-light text-dark">{{ attendances|length }} registros</span>
+      </div>
+      <div class="card-body">
+        {% if attendances %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Nombre</th>
+                <th>Rol</th>
+                <th>Fecha</th>
+                <th>Hora Entrada</th>
+                <th>Hora Salida</th>
+                <th>Tiempo Trabajado</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attendance in attendances %}
+              <tr>
+                <td><small>{{ attendance.id }}</small></td>
+                <td><strong>{{ attendance.user.username }}</strong></td>
+                <td>{{ attendance.user.name }}</td>
+                <td>
+                  <span class="badge {% if attendance.user.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}">
+                    {{ 'ADMIN' if attendance.user.role == 'admin' else 'OPERADOR' }}
+                  </span>
+                </td>
+                <td>{{ attendance.login_time.strftime('%d/%m/%Y') }}</td>
+                <td>{{ attendance.login_time.strftime('%H:%M:%S') }}</td>
+                <td>
+                  {% if attendance.logout_time %}
+                    {{ attendance.logout_time.strftime('%H:%M:%S') }}
+                  {% else %}
+                    <span class="text-success"><i class="bi bi-circle-fill"></i> En curso</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong class="{% if attendance.is_active() %}text-primary{% else %}text-success{% endif %}">
+                    {{ attendance.get_duration_text() }}
+                  </strong>
+                  {% if attendance.total_hours %}
+                    <br><small class="text-muted">({{ "%.2f"|format(attendance.total_hours) }} hs)</small>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if attendance.is_active() %}
+                    <span class="badge bg-success">
+                      <i class="bi bi-circle-fill"></i> Activo
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-check-circle"></i> Finalizado
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('main.attendance_user_report', user_id=attendance.user_id) }}" 
+                     class="btn btn-sm btn-info" title="Ver reporte del usuario">
+                    <i class="bi bi-person-lines-fill"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if attendances|length == 200 %}
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          <strong>Nota:</strong> Se muestran solo los últimos 200 registros. 
+          Use los filtros para refinar su búsqueda.
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-inbox" style="font-size: 3rem"></i>
+          <p class="mt-3">No se encontraron registros con los filtros aplicados</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Acciones -->
+<div class="row mt-4">
+  <div class="col-12">
+    <a href="{{ url_for('main.attendance_panel') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver al Panel
+    </a>
+    <a href="{{ url_for('main.attendance_export') }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}" 
+       class="btn btn-success">
+      <i class="bi bi-download"></i> Exportar a CSV
+    </a>
+  </div>
+</div>
+
+{% endblock %}

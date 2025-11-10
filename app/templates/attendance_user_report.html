@@ -1,0 +1,267 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <h2 class="text-white mb-4">
+      <i class="bi bi-person-lines-fill"></i> Reporte de Asistencia Individual
+    </h2>
+  </div>
+</div>
+
+<!-- Información del Empleado -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h4 class="mb-3">
+              <i class="bi bi-person-circle"></i> {{ user.name }}
+            </h4>
+            <p class="mb-1"><strong>Usuario:</strong> {{ user.username }}</p>
+            <p class="mb-1">
+              <strong>Rol:</strong>
+              <span
+                class="badge {% if user.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}"
+              >
+                {{ 'ADMINISTRADOR' if user.role == 'admin' else 'OPERADOR' }}
+              </span>
+            </p>
+            <p class="mb-0">
+              <strong>Período:</strong>
+              {{ start_date }} al {{ end_date }}
+            </p>
+          </div>
+          <div class="col-md-6">
+            <div class="text-end">
+              <form method="GET" class="d-inline-flex gap-2">
+                <input type="hidden" name="user_id" value="{{ user.id }}" />
+                <input
+                  type="date"
+                  class="form-control form-control-sm"
+                  name="start_date"
+                  value="{{ start_date }}"
+                  required
+                />
+                <input
+                  type="date"
+                  class="form-control form-control-sm"
+                  name="end_date"
+                  value="{{ end_date }}"
+                  required
+                />
+                <button type="submit" class="btn btn-sm btn-primary">
+                  <i class="bi bi-funnel"></i> Filtrar
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estadísticas Resumidas -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <i
+          class="bi bi-calendar-check text-primary"
+          style="font-size: 2.5rem"
+        ></i>
+        <h3 class="mt-3 mb-0">{{ stats.total_days }}</h3>
+        <p class="text-muted mb-0">Días Trabajados</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <i
+          class="bi bi-clock-history text-success"
+          style="font-size: 2.5rem"
+        ></i>
+        <h3 class="mt-3 mb-0">{{ stats.total_hours }}</h3>
+        <p class="text-muted mb-0">Horas Totales</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <i class="bi bi-graph-up text-info" style="font-size: 2.5rem"></i>
+        <h3 class="mt-3 mb-0">{{ stats.avg_hours }}</h3>
+        <p class="text-muted mb-0">Promedio Diario</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <i class="bi bi-trophy text-warning" style="font-size: 2.5rem"></i>
+        {% if stats.max_hours_day %}
+        <h3 class="mt-3 mb-0">
+          {{ "%.1f"|format(stats.max_hours_day.total_hours) }}
+        </h3>
+        <p class="text-muted mb-0">Día Máximo</p>
+        <small class="text-muted"
+          >{{ stats.max_hours_day.login_time.strftime('%d/%m') }}</small
+        >
+        {% else %}
+        <h3 class="mt-3 mb-0">-</h3>
+        <p class="text-muted mb-0">Sin datos</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detalle de Asistencias -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Detalle de Asistencias</h5>
+      </div>
+      <div class="card-body">
+        {% if attendances %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fecha</th>
+                <th>Día</th>
+                <th>Hora Entrada</th>
+                <th>Hora Salida</th>
+                <th>Tiempo Trabajado</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attendance in attendances %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ attendance.login_time.strftime('%d/%m/%Y') }}</td>
+                <td>
+                  {% set day_name = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb',
+                  'Dom'][attendance.login_time.weekday()] %}
+                  <span class="badge bg-secondary">{{ day_name }}</span>
+                </td>
+                <td>{{ attendance.login_time.strftime('%H:%M:%S') }}</td>
+                <td>
+                  {% if attendance.logout_time %} {{
+                  attendance.logout_time.strftime('%H:%M:%S') }} {% else %}
+                  <span class="text-success">En curso</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong
+                    class="{% if attendance.is_active() %}text-primary{% else %}text-success{% endif %}"
+                  >
+                    {{ attendance.get_duration_text() }}
+                  </strong>
+                  {% if attendance.total_hours %}
+                  <br /><small class="text-muted"
+                    >({{ "%.2f"|format(attendance.total_hours) }} hs)</small
+                  >
+                  {% endif %}
+                </td>
+                <td>
+                  {% if attendance.is_active() %}
+                  <span class="badge bg-success">
+                    <i class="bi bi-circle-fill"></i> Activo
+                  </span>
+                  {% else %}
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-check-circle"></i> Completado
+                  </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-inbox" style="font-size: 3rem"></i>
+          <p class="mt-3">No hay registros en el período seleccionado</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Análisis por Día de la Semana -->
+{% if attendances %}
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+          <i class="bi bi-calendar-week"></i> Distribución Semanal
+        </h6>
+      </div>
+      <div class="card-body">
+        {% set days_dict = {'Lunes': [], 'Martes': [], 'Miércoles': [],
+        'Jueves': [], 'Viernes': [], 'Sábado': [], 'Domingo': []} %} {% for
+        attendance in attendances if attendance.total_hours %} {% set day_name =
+        ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado',
+        'Domingo'][attendance.login_time.weekday()] %} {% do
+        days_dict[day_name].append(attendance.total_hours) %} {% endfor %}
+
+        <div class="row">
+          {% for day, hours_list in days_dict.items() %}
+          <div class="col-md-4 mb-3">
+            <div class="card">
+              <div class="card-body">
+                <h6>{{ day }}</h6>
+                {% if hours_list %}
+                <p class="mb-1">
+                  <strong>Días:</strong> {{ hours_list|length }}
+                </p>
+                <p class="mb-0">
+                  <strong>Total:</strong> {{ "%.1f"|format(hours_list|sum) }} hs
+                </p>
+                {% else %}
+                <p class="text-muted mb-0">Sin registros</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Acciones -->
+<div class="row mt-4">
+  <div class="col-12">
+    <a href="{{ url_for('main.attendance_stats') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver a Estadísticas
+    </a>
+    <a
+      href="{{ url_for('main.attendance_history') }}?user_id={{ user.id }}"
+      class="btn btn-primary"
+    >
+      <i class="bi bi-journal-text"></i> Ver Historial Completo
+    </a>
+    <a
+      href="{{ url_for('main.attendance_export') }}?user_id={{ user.id }}&start_date={{ start_date }}&end_date={{ end_date }}"
+      class="btn btn-success"
+    >
+      <i class="bi bi-download"></i> Exportar a CSV
+    </a>
+  </div>
+</div>
+
+{% endblock %}

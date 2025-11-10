@@ -159,22 +159,58 @@
             </li>
 
             <!-- Opciones SOLO para ADMINISTRADORES -->
+            <!-- REEMPLAZAR la sección de menú de opciones ADMIN en base.html -->
+
+            <!-- Opciones SOLO para ADMINISTRADORES -->
             {% if current_user.role == 'admin' %}
-            <li class="nav-item">
+            <li class="nav-item dropdown">
               <a
-                class="nav-link admin-link"
-                href="{{ url_for('main.reports_page') }}"
+                class="nav-link dropdown-toggle admin-link"
+                href="#"
+                id="adminDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
               >
-                <i class="bi bi-graph-up"></i> Reportes
+                <i class="bi bi-shield-lock"></i> Admin
+                <span class="badge badge-admin">ADMIN</span>
               </a>
-            </li>
-            <li class="nav-item">
-              <a
-                class="nav-link admin-link"
-                href="{{ url_for('main.audit_panel') }}"
-              >
-                <i class="bi bi-shield-lock"></i> Auditoría
-              </a>
+              <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.reports_page') }}"
+                  >
+                    <i class="bi bi-graph-up"></i> Reportes
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.audit_panel') }}"
+                  >
+                    <i class="bi bi-shield-lock"></i> Auditoría
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.attendance_panel') }}"
+                  >
+                    <i class="bi bi-clock-history"></i> Control de Horarios
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.attendance_stats') }}"
+                  >
+                    <i class="bi bi-graph-up-arrow"></i> Estadísticas de
+                    Asistencia
+                  </a>
+                </li>
+              </ul>
             </li>
             {% endif %}
           </ul>
