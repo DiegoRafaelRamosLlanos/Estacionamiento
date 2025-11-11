@@ -1,8 +1,5 @@
 """
-antes de todo verifique que la base de datos esté respaldada y que 
-esten los datos impios.
-
-Script completo para gestionar TODOS los usuarios/admin del sistema
+Script completo para gestionar TODOS los usuarios del sistema
 Permite: agregar, eliminar, listar, cambiar contraseñas, cambiar roles
 Ejecutar: python user_manager.py
 """
@@ -185,7 +182,15 @@ def eliminar_usuario():
                 print(f"   💳 {monthly_count} clientes mensuales")
             if attendance_count > 0:
                 print(f"   ⏰ {attendance_count} registros de asistencia")
-            print(f"\n   Los registros NO se eliminarán, solo quedarán sin operador asignado")
+            print(f"\n   QUÉ SE ELIMINARÁ:")
+            if attendance_count > 0:
+                print(f"   ❌ Las {attendance_count} asistencias serán ELIMINADAS permanentemente")
+            print(f"\n   QUÉ SE MANTENDRÁ:")
+            if vehicles_count > 0:
+                print(f"   ✓ Los {vehicles_count} registros de vehículos (con '{user_to_delete.username}' como operador)")
+            if monthly_count > 0:
+                print(f"   ✓ Los {monthly_count} clientes mensuales (con '{user_to_delete.username}' como registrador)")
+            print(f"\n   ℹ️  Los registros históricos mantendrán el nombre del usuario eliminado")
         else:
             print(f"\n   ✅ Este usuario no tiene registros asociados")
         
@@ -197,11 +202,22 @@ def eliminar_usuario():
             print("❌ Operación cancelada")
             return
         
+        # Eliminar asistencias primero (CASCADE)
+        if attendance_count > 0:
+            Attendance.query.filter_by(user_id=user_to_delete.id).delete()
+            print(f"   ✓ Eliminadas {attendance_count} asistencias")
+        
         # Eliminar usuario
         db.session.delete(user_to_delete)
         db.session.commit()
         
         print(f"\n✅ Usuario '{user_to_delete.username}' eliminado exitosamente")
+        
+        if vehicles_count > 0 or monthly_count > 0:
+            print(f"\n📝 IMPORTANTE:")
+            print(f"   Los registros de vehículos y clientes mensuales SE MANTIENEN")
+            print(f"   con '{user_to_delete.username}' como operador (para historial)")
+            print(f"   El usuario ya no podrá iniciar sesión, pero su nombre queda registrado")
         
     except ValueError:
         print("❌ Debe ingresar un número")
@@ -393,15 +409,16 @@ def mostrar_estadisticas():
 def mostrar_menu():
     """Muestra el menú principal"""
     print("\n" + "="*80)
-    print("🔧 GESTOR COMPLETO DE USUARIOS")
+    print("🔧 GESTOR DE USUARIOS")
     print("="*80)
     print("\n1. Listar todos los usuarios")
-    print("2. Agregar nuevo usuario (admin)")
+    print("2. Agregar nuevo ADMINISTRADOR")
     print("3. Eliminar usuario")
     print("4. Cambiar contraseña")
     print("5. Cambiar rol (operador ↔ admin)")
     print("6. Ver estadísticas")
     print("0. Salir")
+    print("\n💡 Nota: Para gestionar operadores usa: python manage_users.py")
     print()
 
 def main():
