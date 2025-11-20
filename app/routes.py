@@ -106,6 +106,7 @@ def vehicle_entry():
             'message': str(e)
         }), 500
 
+#
 @main.route('/vehicle/exit', methods=['POST'])
 @login_required
 def vehicle_exit():
@@ -153,24 +154,26 @@ def vehicle_exit():
             total_minutes = time_diff.total_seconds() / 60
             hours_decimal = total_minutes / 60
             
-            # Calcular costo según tipo
+            # ⭐ NUEVO CÁLCULO: CADA 15 MINUTOS
+            # Tarifas según tipo
             if vehicle.type == 'auto':
                 first_hour_rate = 500
-                half_hour_rate = 250
+                quarter_hour_rate = 125  # $500 / 4 = $125 cada 15 min
             else:  # moto
                 first_hour_rate = 300
-                half_hour_rate = 150
+                quarter_hour_rate = 75   # $300 / 4 = $75 cada 15 min
             
-            # Cálculo: primera hora completa + medias horas adicionales
+            # Cálculo: primera hora completa + cuartos de hora adicionales
             if total_minutes <= 60:
                 cost = first_hour_rate
             else:
                 cost = first_hour_rate
                 remaining_minutes = total_minutes - 60
-                half_hours = int(remaining_minutes / 30)
-                if remaining_minutes % 30 > 0:
-                    half_hours += 1
-                cost += half_hours * half_hour_rate
+                # Calcular cuartos de hora (redondear hacia arriba)
+                quarter_hours = int(remaining_minutes / 15)
+                if remaining_minutes % 15 > 0:
+                    quarter_hours += 1
+                cost += quarter_hours * quarter_hour_rate
         
         vehicle.total_cost = cost
         db.session.commit()
