@@ -70,52 +70,7 @@ class BackupManager:
             active_vehicles = sum(1 for v in vehicles if not v[4])
             monthly_clients = sum(1 for v in vehicles if v[6])
             
-            # 1. Reporte JSON (para procesamiento automático)
-            json_data = {
-                'fecha': str(today),
-                'timestamp': timestamp,
-                'resumen': {
-                    'total_vehiculos': total_vehicles,
-                    'recaudacion_total': total_earnings,
-                    'vehiculos_activos': active_vehicles,
-                    'clientes_mensuales': monthly_clients
-                },
-                'movimientos': [
-                    {
-                        'id': v[0],
-                        'patente': v[1],
-                        'tipo': v[2],
-                        'ingreso': v[3],
-                        'salida': v[4],
-                        'costo': v[5],
-                        'es_mensual': v[6],
-                        'operador_ingreso': v[7],
-                        'operador_salida': v[8]
-                    } for v in vehicles
-                ]
-            }
-            
-            json_filename = f"reporte_{today}__{timestamp}.json"
-            json_path = os.path.join(self.reports_dir, json_filename)
-            
-            with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump(json_data, f, indent=2, ensure_ascii=False)
-            
-            print(f"✅ Reporte JSON creado: {json_path}")
-            
-            # 2. Reporte CSV (para Excel)
-            csv_filename = f"reporte_{today}__{timestamp}.csv"
-            csv_path = os.path.join(self.reports_dir, csv_filename)
-            
-            with open(csv_path, 'w', newline='', encoding='utf-8-sig') as f:
-                writer = csv.writer(f)
-                writer.writerow(['ID', 'Patente', 'Tipo', 'Ingreso', 'Salida', 
-                               'Costo', 'Es Mensual', 'Operador Ingreso', 'Operador Salida'])
-                writer.writerows(vehicles)
-            
-            print(f"✅ Reporte CSV creado: {csv_path}")
-            
-            # 3. Reporte TXT legible
+            # Reporte TXT legible
             txt_filename = f"reporte_{today}__{timestamp}.txt"
             txt_path = os.path.join(self.reports_dir, txt_filename)
             
@@ -147,11 +102,7 @@ class BackupManager:
             
             conn.close()
             
-            return {
-                'json': json_path,
-                'csv': csv_path,
-                'txt': txt_path
-            }
+            return txt_path
             
         except Exception as e:
             print(f"❌ Error al generar reportes: {e}")
@@ -179,45 +130,7 @@ class BackupManager:
         except Exception as e:
             print(f"❌ Error al limpiar backups: {e}")
 
-    def export_monthly_summary(self):
-        """Exportar resumen mensual"""
-        today = datetime.now()
-        first_day = today.replace(day=1)
-        
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT 
-                    DATE(entry_time) as fecha,
-                    COUNT(*) as total_vehiculos,
-                    SUM(CASE WHEN exit_time IS NOT NULL THEN total_cost ELSE 0 END) as recaudacion,
-                    SUM(CASE WHEN exit_time IS NULL THEN 1 ELSE 0 END) as activos
-                FROM vehicle
-                WHERE entry_time >= ?
-                GROUP BY DATE(entry_time)
-                ORDER BY fecha
-            """, (first_day,))
-            
-            monthly_data = cursor.fetchall()
-            
-            filename = f"resumen_mensual_{today.strftime('%Y_%m')}.csv"
-            filepath = os.path.join(self.reports_dir, filename)
-            
-            with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
-                writer = csv.writer(f)
-                writer.writerow(['Fecha', 'Total Vehículos', 'Recaudación', 'Activos'])
-                writer.writerows(monthly_data)
-            
-            print(f"✅ Resumen mensual creado: {filepath}")
-            conn.close()
-            
-            return filepath
-            
-        except Exception as e:
-            print(f"❌ Error al generar resumen mensual: {e}")
-            return None
+
 
     def run_full_backup(self):
         """Ejecutar backup completo"""
@@ -232,17 +145,10 @@ class BackupManager:
         # 2. Reporte diario
         print("\n📊 2. Generando reportes diarios...")
         self.generate_daily_report()
+
         
-        # 3. Resumen mensual (solo el día 1 del mes o si no existe)
-        if datetime.now().day == 1 or not os.path.exists(
-            os.path.join(self.reports_dir, 
-                        f"resumen_mensual_{datetime.now().strftime('%Y_%m')}.csv")
-        ):
-            print("\n📈 3. Generando resumen mensual...")
-            self.export_monthly_summary()
-        
-        # 4. Limpiar backups antiguos
-        print("\n🧹 4. Limpiando backups antiguos...")
+        # 3. Limpiar backups antiguos
+        print("\n🧹 3. Limpiando backups antiguos...")
         self.clean_old_backups(days_to_keep=90)
         
         print("\n" + "=" * 80)

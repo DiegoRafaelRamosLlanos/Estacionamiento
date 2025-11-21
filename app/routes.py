@@ -453,7 +453,7 @@ def list_reports():
     
     reports = []
     for file in os.listdir(reports_dir):
-        if file.endswith(('.json', '.csv', '.txt')):
+        if file.endswith('.txt'):
             file_path = os.path.join(reports_dir, file)
             file_stat = os.stat(file_path)
             
