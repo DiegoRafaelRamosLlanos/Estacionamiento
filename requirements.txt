@@ -21,8 +21,10 @@ Werkzeug==3.0.1
 
 # Para generar PDFs (tickets/comprobantes)
 reportlab==4.0.7
-
+# Impresora térmica ESC/POS
+python-escpos==3.0.0
 # Para desarrollo
 pytest==7.4.3
 black==23.10.1
 flake8==6.1.0
+

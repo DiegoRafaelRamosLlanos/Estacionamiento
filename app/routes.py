@@ -11,6 +11,7 @@ from flask import send_file, abort
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import abort
+from app.printer_service import printer_service
 
 main = Blueprint('main', __name__)
 
@@ -90,13 +91,23 @@ def vehicle_entry():
         vehicle.qr_code = img_base64
         db.session.commit()
         
+        # Intentar imprimir ticket de entrada
+        print_success = False
+        print_message = ""
+        try:
+            print_success, print_message = printer_service.print_entry_ticket(vehicle)
+        except Exception as e:
+            print_message = f"Error al imprimir: {str(e)}"
+        
         return jsonify({
             'success': True,
             'vehicle_id': vehicle.id,
             'qr_code': img_base64,
             'is_monthly': is_monthly,
             'plate': vehicle.plate,
-            'entry_time': vehicle.entry_time.strftime('%H:%M:%S')
+            'entry_time': vehicle.entry_time.strftime('%H:%M:%S'),
+            'printed': print_success,
+            'print_message': print_message
         })
         
     except Exception as e:
@@ -178,6 +189,14 @@ def vehicle_exit():
         vehicle.total_cost = cost
         db.session.commit()
         
+        # Intentar imprimir ticket de salida
+        print_success = False
+        print_message = ""
+        try:
+            print_success, print_message = printer_service.print_exit_ticket(vehicle)
+        except Exception as e:
+            print_message = f"Error al imprimir: {str(e)}"
+        
         return jsonify({
             'success': True,
             'vehicle': {
@@ -191,7 +210,9 @@ def vehicle_exit():
                 'is_monthly': vehicle.is_monthly,
                 'operator': vehicle.operator_name,
                 'exit_operator': vehicle.exit_operator_name
-            }
+            },
+            'printed': print_success,
+            'print_message': print_message
         })
         
     except Exception as e:

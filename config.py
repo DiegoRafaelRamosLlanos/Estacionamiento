@@ -9,3 +9,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Configuración de impresora térmica
+    PRINTER_ENABLED = True
+    PRINTER_TYPE = 'network'
+    PRINTER_IP = '192.168.18.43'  # IP configurada en la impresora
+    PRINTER_PORT = 9100
+    PRINTER_TIMEOUT = 5

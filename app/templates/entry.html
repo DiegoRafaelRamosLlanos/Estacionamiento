@@ -11,28 +11,14 @@
         <form id="entryForm">
           <div class="mb-3">
             <label for="plate" class="form-label fw-semibold">Patente</label>
-            <input
-              type="text"
-              class="form-control form-control-lg"
-              id="plate"
-              name="plate"
-              placeholder="ABC123"
-              required
-              style="text-transform: uppercase"
-            />
+            <input type="text" class="form-control form-control-lg" id="plate" name="plate" placeholder="ABC123"
+              required style="text-transform: uppercase" />
             <small class="text-muted">Ingrese la patente sin espacios</small>
           </div>
 
           <div class="mb-4">
-            <label for="type" class="form-label fw-semibold"
-              >Tipo de Vehículo</label
-            >
-            <select
-              class="form-select form-select-lg"
-              id="type"
-              name="type"
-              required
-            >
+            <label for="type" class="form-label fw-semibold">Tipo de Vehículo</label>
+            <select class="form-select form-select-lg" id="type" name="type" required>
               <option value="auto">
                 🚗 Auto - $500 primera hora, $125 cada 15 min
               </option>
@@ -62,24 +48,14 @@
 </div>
 
 <!-- Modal de Confirmación con QR -->
-<div
-  class="modal fade"
-  id="qrModal"
-  tabindex="-1"
-  aria-labelledby="qrModalLabel"
-  aria-hidden="true"
->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h5 class="modal-title" id="qrModalLabel">
           <i class="bi bi-check-circle"></i> Vehículo Registrado
         </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center">
         <div id="qrCodeContainer" class="mb-3"></div>
@@ -105,11 +81,7 @@
         <h5 class="modal-title">
           <i class="bi bi-exclamation-triangle"></i> Error
         </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-        ></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p id="errorMessage"></p>
@@ -158,15 +130,19 @@
                     <div class="alert alert-success">
                         <h5><strong>Patente:</strong> ${data.plate}</h5>
                         <p><strong>ID:</strong> ${data.vehicle_id}</p>
-                        <p><strong>Hora de Ingreso:</strong> ${
-                          data.entry_time
-                        }</p>
-                        ${
-                          data.is_monthly
-                            ? '<p class="text-primary fw-bold">✓ Cliente Mensual</p>'
-                            : ""
-                        }
+                        <p><strong>Hora de Ingreso:</strong> ${data.entry_time
+            }</p>
+                        ${data.is_monthly
+              ? '<p class="text-primary fw-bold">✓ Cliente Mensual</p>'
+              : ""
+            }
                     </div>
+                    ${data.printed
+              ? '<div class="alert alert-info"><i class="bi bi-printer-fill"></i> Ticket impreso correctamente</div>'
+              : data.print_message
+                ? `<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> ${data.print_message}</div>`
+                : ""
+            }
                 `;
           document.getElementById("vehicleInfo").innerHTML = info;
 
