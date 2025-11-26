@@ -438,19 +438,40 @@ def edit_monthly_client(id):
 @login_required
 def reports_page():
     # Estadísticas del día
-    today = datetime.now().date()
-    today_vehicles = Vehicle.query.filter(
-        db.func.date(Vehicle.entry_time) == today
-    ).all()
+    from sqlalchemy import or_
     
-    total_vehicles = len(today_vehicles)
-    total_earnings = sum(v.total_cost or 0 for v in today_vehicles if v.exit_time)
-    active_vehicles = len([v for v in today_vehicles if not v.exit_time])
+    today = datetime.now().date()
+    
+    # Mostrar vehículos que:
+    # 1. Ingresaron hoy, O
+    # 2. Salieron hoy, O
+    # 3. Están activos (sin importar cuándo ingresaron)
+    today_vehicles = Vehicle.query.filter(
+        or_(
+            db.func.date(Vehicle.entry_time) == today,  # Ingresaron hoy
+            db.func.date(Vehicle.exit_time) == today,   # Salieron hoy
+            Vehicle.exit_time.is_(None)                  # Activos
+        )
+    ).order_by(Vehicle.entry_time.desc()).all()
+    
+    # Estadísticas precisas del día
+    vehicles_entered_today = [v for v in today_vehicles if v.entry_time.date() == today]
+    vehicles_exited_today = [v for v in today_vehicles if v.exit_time and v.exit_time.date() == today]
+    active_vehicles_count = len([v for v in today_vehicles if not v.exit_time])
+    
+    # Total de vehículos únicos del día (ingresaron O salieron hoy, sin duplicar)
+    unique_today = set()
+    for v in today_vehicles:
+        if v.entry_time.date() == today or (v.exit_time and v.exit_time.date() == today):
+            unique_today.add(v.id)
+    
+    total_vehicles = len(unique_today)
+    total_earnings = sum(v.total_cost or 0 for v in vehicles_exited_today)
     
     return render_template('reports.html', 
                          total_vehicles=total_vehicles,
                          total_earnings=total_earnings,
-                         active_vehicles=active_vehicles,
+                         active_vehicles=active_vehicles_count,
                          vehicles=today_vehicles)
 
 # ============================================

@@ -1,0 +1,138 @@
+================================================================================
+REPORTE DIARIO DE ESTACIONAMIENTO - 26/11/2025
+================================================================================
+
+RESUMEN DEL DÍA:
+--------------------------------------------------------------------------------
+Total de vehículos:      3
+Recaudación total:       $121,750.00
+Vehículos activos:       19
+Clientes mensuales:      0
+
+DETALLE DE MOVIMIENTOS:
+--------------------------------------------------------------------------------
+
+ID: 34 | Patente: OP1 | Tipo: auto
+  Ingreso:  2025-11-26 17:19:47.258604
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 33 | Patente: P12 | Tipo: auto
+  Ingreso:  2025-11-24 11:38:42.534919
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 32 | Patente: YO98 | Tipo: auto
+  Ingreso:  2025-11-24 11:35:18.471485
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 30 | Patente: YO424 | Tipo: auto
+  Ingreso:  2025-11-23 17:07:16.999819
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 29 | Patente: YO901 | Tipo: auto
+  Ingreso:  2025-11-23 17:05:25.273340
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 28 | Patente: YO45 | Tipo: auto
+  Ingreso:  2025-11-23 16:01:35.853362
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 27 | Patente: YO45 | Tipo: auto
+  Ingreso:  2025-11-23 15:59:27.014610
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 26 | Patente: YO45 | Tipo: auto
+  Ingreso:  2025-11-23 15:56:59.740420
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 25 | Patente: TO4 | Tipo: auto
+  Ingreso:  2025-11-22 21:09:05.742419
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 24 | Patente: YO87 | Tipo: auto
+  Ingreso:  2025-11-22 20:01:28.334338
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: q
+--------------------------------------------------------------------------------
+ID: 23 | Patente: YO90 | Tipo: moto
+  Ingreso:  2025-11-22 19:34:39.041304
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 21 | Patente: YO80 | Tipo: auto
+  Ingreso:  2025-11-22 16:10:31.426517
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 20 | Patente: YO51 | Tipo: auto
+  Ingreso:  2025-11-22 16:09:47.672043
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 19 | Patente: YO10 | Tipo: auto
+  Ingreso:  2025-11-22 16:08:54.372024
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 17 | Patente: YO2 | Tipo: auto
+  Ingreso:  2025-11-22 16:05:02.551062
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 16 | Patente: YP2 | Tipo: auto
+  Ingreso:  2025-11-22 15:53:19.519281
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 15 | Patente: YO1 | Tipo: auto
+  Ingreso:  2025-11-22 15:50:16.457973
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 14 | Patente: T43 | Tipo: auto
+  Ingreso:  2025-11-22 15:42:32.748442
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: admin2
+--------------------------------------------------------------------------------
+ID: 13 | Patente: 4R | Tipo: auto
+  Ingreso:  2025-11-22 15:37:54.934270
+  Salida:   2025-11-26 17:30:35.510668
+  Costo:    $49,000.00  Operador: admin2 / q
+--------------------------------------------------------------------------------
+ID: 9 | Patente: ABC123 | Tipo: auto
+  Ingreso:  2025-11-20 16:10:01.092636
+  Salida:   AÚN ESTACIONADO
+  Costo:    N/A (Mensual)
+  Operador: operador1
+--------------------------------------------------------------------------------
+ID: 8 | Patente: YO2 | Tipo: auto
+  Ingreso:  2025-11-20 16:02:12.655445
+  Salida:   2025-11-26 17:22:29.755254
+  Costo:    $72,750.00  Operador: admin2 / q
+--------------------------------------------------------------------------------

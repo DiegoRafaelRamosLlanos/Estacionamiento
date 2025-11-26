@@ -53,22 +53,37 @@ class BackupManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Obtener todos los movimientos del día
+            # Obtener vehículos que:
+            # 1. Ingresaron hoy, O
+            # 2. Salieron hoy, O
+            # 3. Están activos (sin importar cuándo ingresaron)
             cursor.execute("""
                 SELECT id, plate, type, entry_time, exit_time, 
                        total_cost, is_monthly, operator_name, exit_operator_name
                 FROM vehicle
                 WHERE DATE(entry_time) = ?
+                   OR DATE(exit_time) = ?
+                   OR exit_time IS NULL
                 ORDER BY entry_time DESC
-            """, (today,))
+            """, (today, today))
             
             vehicles = cursor.fetchall()
             
-            # Calcular estadísticas
-            total_vehicles = len(vehicles)
-            total_earnings = sum(v[5] for v in vehicles if v[5])
-            active_vehicles = sum(1 for v in vehicles if not v[4])
-            monthly_clients = sum(1 for v in vehicles if v[6])
+            # Calcular estadísticas precisas del día
+            vehicles_entered_today = [v for v in vehicles if v[3] and v[3].startswith(str(today))]
+            vehicles_exited_today = [v for v in vehicles if v[4] and v[4].startswith(str(today))]
+            active_vehicles = [v for v in vehicles if not v[4]]
+            
+            # Total de vehículos únicos del día (ingresaron O salieron hoy)
+            unique_today_ids = set()
+            for v in vehicles:
+                if (v[3] and v[3].startswith(str(today))) or (v[4] and v[4].startswith(str(today))):
+                    unique_today_ids.add(v[0])
+            
+            total_vehicles = len(unique_today_ids)
+            total_earnings = sum(v[5] for v in vehicles_exited_today if v[5])
+            active_vehicles_count = len(active_vehicles)
+            monthly_clients = sum(1 for v in vehicles_entered_today if v[6])
             
             # Reporte TXT legible
             txt_filename = f"reporte_{today}__{timestamp}.txt"
@@ -83,7 +98,7 @@ class BackupManager:
                 f.write("-" * 80 + "\n")
                 f.write(f"Total de vehículos:      {total_vehicles}\n")
                 f.write(f"Recaudación total:       ${total_earnings:,.2f}\n")
-                f.write(f"Vehículos activos:       {active_vehicles}\n")
+                f.write(f"Vehículos activos:       {active_vehicles_count}\n")
                 f.write(f"Clientes mensuales:      {monthly_clients}\n")
                 f.write("\n")
                 
