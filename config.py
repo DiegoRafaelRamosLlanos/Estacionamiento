@@ -18,4 +18,4 @@ class Config:
     PRINTER_TIMEOUT = 5
     
     # Configuración de códigos de barras
-    BARCODE_ID_LENGTH = 5  # Longitud del ID con padding (ej: 00001, 00002) para lector Honeywell
+    BARCODE_ID_LENGTH = 5  # Longitud del ID con padding 

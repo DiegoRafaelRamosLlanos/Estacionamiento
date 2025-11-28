@@ -1,4 +1,6 @@
-# Framework web
+# ============================================
+# FRAMEWORK WEB
+# ============================================
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
@@ -6,25 +8,44 @@ Flask-WTF==1.2.1
 Bootstrap-Flask==2.3.0
 python-dotenv==1.0.0
 
-# Base de datos
+# ============================================
+# BASE DE DATOS
+# ============================================
 SQLAlchemy==2.0.23
 PyMySQL==1.1.0
 
-# Generación y lectura de QR
-qrcode==7.4.2
-opencv-python==4.8.1.78
-pyzbar==0.1.9
+# ============================================
+# CÓDIGOS DE BARRAS Y QR
+# ============================================
+# Códigos de barras Code128 (para lector Honeywell)
+python-barcode[images]>=0.15.1
+# Pillow es necesario para python-barcode con imágenes
+Pillow>=10.0.0
 
-# Utilidades
+# Códigos QR (legacy, puede ser removido en el futuro)
+qrcode[pil]==7.4.2
+
+# ============================================
+# IMPRESORA TÉRMICA
+# ============================================
+# Impresora ESC/POS
+python-escpos==3.0.0
+
+# ============================================
+# UTILIDADES
+# ============================================
 python-dateutil==2.8.2
 Werkzeug==3.0.1
 
+# ============================================
+# GENERACIÓN DE DOCUMENTOS
+# ============================================
 # Para generar PDFs (tickets/comprobantes)
 reportlab==4.0.7
-# Impresora térmica ESC/POS
-python-escpos==3.0.0
-# Para desarrollo
-pytest==7.4.3
-black==23.10.1
-flake8==6.1.0
 
+# ============================================
+# DESARROLLO Y TESTING 
+# ============================================
+# pytest==7.4.3
+# black==23.10.1
+# flake8==6.1.0
