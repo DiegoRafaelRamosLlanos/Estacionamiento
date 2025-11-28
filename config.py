@@ -16,3 +16,6 @@ class Config:
     PRINTER_IP = '192.168.18.43'  # IP configurada en la impresora
     PRINTER_PORT = 9100
     PRINTER_TIMEOUT = 5
+    
+    # Configuración de códigos de barras
+    BARCODE_ID_LENGTH = 5  # Longitud del ID con padding (ej: 00001, 00002) para lector Honeywell

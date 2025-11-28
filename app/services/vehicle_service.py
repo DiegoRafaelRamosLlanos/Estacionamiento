@@ -6,7 +6,7 @@ from datetime import datetime
 from app.models.models import Vehicle
 from app.repositories.vehicle_repository import vehicle_repository
 from app.repositories.monthly_repository import monthly_client_repository
-from app.services.qr_service import qr_service
+from app.services.barcode_service import barcode_service
 from app.services.pricing_service import pricing_service
 from app.validators.vehicle_validator import VehicleValidator
 from app.exceptions import (
@@ -28,7 +28,7 @@ class VehicleService:
     def __init__(self):
         self.vehicle_repo = vehicle_repository
         self.monthly_repo = monthly_client_repository
-        self.qr_service = qr_service
+        self.barcode_service = barcode_service
         self.pricing_service = pricing_service
         self.printer = printer_service
     
@@ -80,9 +80,9 @@ class VehicleService:
         self.vehicle_repo.create(vehicle)
         self.vehicle_repo.save()
         
-        # Generar QR
-        qr_code = self.qr_service.generate_qr_base64(str(vehicle.id))
-        vehicle.qr_code =        qr_code
+        # Generar código de barras
+        barcode_code = self.barcode_service.generate_barcode_base64(str(vehicle.id))
+        vehicle.qr_code = barcode_code  # Mantenemos el nombre de columna para compatibilidad
         self.vehicle_repo.save()
         
         # Intentar imprimir ticket
@@ -98,7 +98,7 @@ class VehicleService:
             'plate': vehicle.plate,
             'type': vehicle.type,
             'entry_time': vehicle.entry_time,
-            'qr_code': qr_code,
+            'qr_code': barcode_code,  # Mantenemos el nombre para compatibilidad con frontend
             'is_monthly': is_monthly,
             'operator': operator_name,
             'printed': print_success,

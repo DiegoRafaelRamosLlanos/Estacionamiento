@@ -75,20 +75,11 @@ def vehicle_entry():
         db.session.add(vehicle)
         db.session.commit()
         
-        # Generar QR en memoria
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(str(vehicle.id))
-        qr.make(fit=True)
+        # Generar código de barras usando el servicio (incluye padding de ceros)
+        from app.services.barcode_service import barcode_service
+        img_base64 = barcode_service.generate_barcode_base64(vehicle.id)
         
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convertir a base64
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
-        buffer.seek(0)
-        img_base64 = base64.b64encode(buffer.getvalue()).decode()
-        
-        vehicle.qr_code = img_base64
+        vehicle.qr_code = img_base64  # Mantenemos nombre de columna para compatibilidad
         db.session.commit()
         
         # Intentar imprimir ticket de entrada
